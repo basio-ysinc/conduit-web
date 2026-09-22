@@ -99,16 +99,16 @@ export function ArticleList({
 }) {
   if (error) {
     return (
-      <div className="article-preview">
+      <div>
         <ErrorMessages errors={error} />
       </div>
     );
   }
   if (loading || articles === null) {
-    return <div className="article-preview">Loading articles...</div>;
+    return <div>Loading articles...</div>;
   }
   if (articles.length === 0) {
-    return <div className="article-preview empty-feed-message">{emptyMessage}</div>;
+    return <div className="empty-feed-message">{emptyMessage}</div>;
   }
   return (
     <>
