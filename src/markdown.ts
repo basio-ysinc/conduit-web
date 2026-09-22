@@ -40,7 +40,7 @@ function renderInline(escaped: string): string {
   const codes: string[] = [];
   let out = escaped.replace(/`([^`]+)`/g, (_m, code: string) => {
     codes.push(code);
-    return `${codes.length - 1}`;
+    return `\u0000${codes.length - 1}\u0000`;
   });
 
   // 画像 ![alt](url)
@@ -62,8 +62,11 @@ function renderInline(escaped: string): string {
   out = out.replace(/\b_([^_]+)_\b/g, "<em>$1</em>");
   out = out.replace(/~~([^~]+)~~/g, "<del>$1</del>");
 
-  // インラインコードを戻す
-  out = out.replace(/(\d+)/g, (_m, i: string) => `<code>${codes[Number(i)]}</code>`);
+  // インラインコードを戻す(プレースホルダは本文に現れない \u0000 数字 \u0000 形式)
+  out = out.replace(/\u0000(\d+)\u0000/g, (m, i: string) => {
+    const code = codes[Number(i)];
+    return code === undefined ? m : `<code>${code}</code>`;
+  });
   return out;
 }
 

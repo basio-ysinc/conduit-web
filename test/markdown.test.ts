@@ -46,6 +46,23 @@ describe("renderMarkdown", () => {
     expect(html).toContain("<em>em</em>");
     expect(html).toContain("<code>code</code>");
   });
+
+  it("leaves digits in plain text untouched", () => {
+    expect(renderMarkdown("I have 3 cats")).toBe("<p>I have 3 cats</p>");
+  });
+
+  it("keeps links whose URLs contain digits", () => {
+    const html = renderMarkdown("[a](https://ex.com/p?a=1&b=2)");
+    expect(html).toContain('<a href="https://ex.com/p?a=1&amp;b=2">a</a>');
+    expect(html).not.toContain("<code>");
+  });
+
+  it("restores inline code without eating surrounding digits", () => {
+    const html = renderMarkdown("Use `x` in 2024");
+    expect(html).toContain("<code>x</code>");
+    expect(html).toContain("in 2024");
+    expect(html).not.toContain("undefined");
+  });
 });
 
 describe("avatarUrl", () => {
