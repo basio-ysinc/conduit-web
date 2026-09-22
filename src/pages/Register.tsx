@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /** /register。登録成功でそのままログイン状態になりホームへ。 */
 export function Register() {
@@ -11,7 +12,7 @@ export function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<string[] | null>(null);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -22,7 +23,7 @@ export function Register() {
       signIn(await api.register({ username, email, password }));
       navigate("/");
     } catch (err) {
-      setErrors(errorToMessages(err));
+      setErrors(toErrors(err));
     } finally {
       setBusy(false);
     }
@@ -37,7 +38,7 @@ export function Register() {
             <p className="text-xs-center">
               <Link to="/login">Have an account?</Link>
             </p>
-            <ErrorMessages messages={errors} />
+            <ErrorMessages errors={errors} />
             <form onSubmit={onSubmit}>
               <fieldset className="form-group">
                 <input

@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { Article } from "../api/types";
+import type { Article, Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
 import { formatDate } from "./ArticleMeta";
@@ -88,14 +88,14 @@ export function ArticleList({
 }: {
   articles: Article[] | null;
   loading: boolean;
-  error: string[] | null;
+  error: Errors | null;
   emptyMessage: ReactNode;
   onArticleChange?: (article: Article) => void;
 }) {
   if (error) {
     return (
       <div className="article-preview">
-        <ErrorMessages messages={error} />
+        <ErrorMessages errors={error} />
       </div>
     );
   }

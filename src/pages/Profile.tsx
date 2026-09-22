@@ -6,7 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";
 import { FollowButton } from "../components/ArticleMeta";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /**
  * /profile/:username と /profile/:username/favorites。
@@ -23,11 +23,11 @@ export function Profile() {
 
   const [profile, setProfile] = useState<ProfileModel | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [profileErrors, setProfileErrors] = useState<string[] | null>(null);
+  const [profileErrors, setProfileErrors] = useState<Errors | null>(null);
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [articlesCount, setArticlesCount] = useState(0);
   const [listLoading, setListLoading] = useState(true);
-  const [listErrors, setListErrors] = useState<string[] | null>(null);
+  const [listErrors, setListErrors] = useState<Errors | null>(null);
 
   useEffect(() => {
     if (!username) return;
@@ -45,7 +45,7 @@ export function Profile() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
-          setProfileErrors(errorToMessages(err));
+          setProfileErrors(toErrors(err));
         }
       });
     return () => {
@@ -72,7 +72,7 @@ export function Profile() {
       .catch((err: unknown) => {
         if (cancelled) return;
         setArticles([]);
-        setListErrors(errorToMessages(err));
+        setListErrors(toErrors(err));
       })
       .finally(() => {
         if (!cancelled) setListLoading(false);
@@ -97,7 +97,7 @@ export function Profile() {
                   <p>The user you are looking for does not exist.</p>
                 </>
               ) : profileErrors && !profile ? (
-                <ErrorMessages messages={profileErrors} />
+                <ErrorMessages errors={profileErrors} />
               ) : !profile ? (
                 <p>Loading profile...</p>
               ) : (
@@ -113,7 +113,7 @@ export function Profile() {
                     <FollowButton
                       profile={profile}
                       onChange={setProfile}
-                      onError={(err) => setProfileErrors(errorToMessages(err))}
+                      onError={(err) => setProfileErrors(toErrors(err))}
                     />
                   )}
                 </>

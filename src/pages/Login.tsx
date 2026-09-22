@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /** /login。認証成功でホームへ。失敗は .error-messages に出して留まる。 */
 export function Login() {
@@ -10,7 +11,7 @@ export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<string[] | null>(null);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -21,7 +22,7 @@ export function Login() {
       signIn(await api.login({ email, password }));
       navigate("/");
     } catch (err) {
-      setErrors(errorToMessages(err));
+      setErrors(toErrors(err));
     } finally {
       setBusy(false);
     }
@@ -36,7 +37,7 @@ export function Login() {
             <p className="text-xs-center">
               <Link to="/register">Need an account?</Link>
             </p>
-            <ErrorMessages messages={errors} />
+            <ErrorMessages errors={errors} />
             <form onSubmit={onSubmit}>
               <fieldset className="form-group">
                 <input

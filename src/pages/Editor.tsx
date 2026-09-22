@@ -1,7 +1,8 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import type { Errors } from "../api/types";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /**
  * /editor(新規)と /editor/:slug(編集)。編集時は記事を読み込んでフォームに
@@ -15,7 +16,7 @@ export function Editor() {
   const [body, setBody] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tagList, setTagList] = useState<string[]>([]);
-  const [errors, setErrors] = useState<string[] | null>(null);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function Editor() {
         setTagList(article.tagList);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setErrors(errorToMessages(err));
+        if (!cancelled) setErrors(toErrors(err));
       });
     return () => {
       cancelled = true;
@@ -61,7 +62,7 @@ export function Editor() {
         : await api.createArticle({ title, description, body, tagList });
       navigate(`/article/${saved.slug}`);
     } catch (err) {
-      setErrors(errorToMessages(err));
+      setErrors(toErrors(err));
       setBusy(false);
     }
   };
@@ -71,7 +72,7 @@ export function Editor() {
       <div className="container page">
         <div className="row">
           <div className="col-md-10 offset-md-1 col-xs-12">
-            <ErrorMessages messages={errors} />
+            <ErrorMessages errors={errors} />
             <form onSubmit={onSubmit}>
               <fieldset>
                 <fieldset className="form-group">

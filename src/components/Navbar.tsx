@@ -1,6 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { avatarUrl } from "../avatar";
+import { DEFAULT_AVATAR, avatarUrl } from "../avatar";
+
+export { DEFAULT_AVATAR };
 
 /** .navbar。ログイン状態で .nav-link を切り替える。 */
 export function Navbar() {

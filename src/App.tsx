@@ -16,7 +16,7 @@ import { Settings } from "./pages/Settings";
  * サーバ一時障害(unavailable)時は "Connecting" インジケータを常時出す。
  */
 export function App() {
-  const { state, retry } = useAuth();
+  const { state } = useAuth();
   return (
     <>
       <Navbar />
@@ -24,7 +24,11 @@ export function App() {
         <div className="container">
           <p className="text-xs-center">
             Connecting to the server...{" "}
-            <button type="button" className="btn btn-sm btn-outline-primary" onClick={retry}>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => window.location.reload()}
+            >
               Retry
             </button>
           </p>

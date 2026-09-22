@@ -1,27 +1,30 @@
 import { ApiError } from "../api/client";
+import type { Errors } from "../api/types";
 
 /**
- * エラーを .error-messages の <li> 文字列配列に正規化する。
- * ApiError はフィールド名つきの各メッセージ、それ以外(ネットワーク断等)は
- * 接続エラーの定型文を返す。
+ * 捕捉したエラーを GenericErrorModel の形に正規化する。
+ * ApiError はその errors をそのまま使い、ネットワーク断等の非 HTTP エラーは
+ * 接続エラーの定型文にする。レスポンスに errors が無い場合も表示できるよう
+ * フォールバックを入れる。
  */
-export function errorToMessages(err: unknown): string[] {
+export function toErrors(err: unknown): Errors {
   if (err instanceof ApiError) {
-    const items = Object.entries(err.errors).flatMap(([field, messages]) =>
-      messages.map((message) => (field ? `${field} ${message}` : message)),
-    );
-    if (items.length > 0) return items;
-    return [`Request failed with status ${err.status}`];
+    if (Object.keys(err.errors).length > 0) return err.errors;
+    return { error: [`Request failed with status ${err.status}`] };
   }
-  return ["Unable to connect to the server. Please check your connection and try again."];
+  return { error: ["Unable to connect to the server. Please check your connection and try again."] };
 }
 
-/** エラーメッセージ一覧。.error-messages(<ul>)で描画する。 */
-export function ErrorMessages({ messages }: { messages: string[] | null | undefined }) {
-  if (!messages || messages.length === 0) return null;
+/** API のエラー(GenericErrorModel)を .error-messages に項目ごとに表示する。 */
+export function ErrorMessages({ errors }: { errors: Errors | null | undefined }) {
+  if (!errors) return null;
+  const items = Object.entries(errors).flatMap(([field, messages]) =>
+    messages.map((message) => `${field} ${message}`),
+  );
+  if (items.length === 0) return null;
   return (
     <ul className="error-messages">
-      {messages.map((item) => (
+      {items.map((item) => (
         <li key={item}>{item}</li>
       ))}
     </ul>

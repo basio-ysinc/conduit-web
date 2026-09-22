@@ -1,11 +1,11 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api/client";
-import type { Article as ArticleModel, Comment } from "../api/types";
+import type { Article as ArticleModel, Comment, Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
 import { ArticleMeta, FavoriteButton, FollowButton, formatDate } from "../components/ArticleMeta";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 import { renderMarkdown } from "../markdown";
 
 /**
@@ -19,10 +19,10 @@ export function Article() {
   const { state, user } = useAuth();
   const [article, setArticle] = useState<ArticleModel | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [errors, setErrors] = useState<string[] | null>(null);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
-  const [commentErrors, setCommentErrors] = useState<string[] | null>(null);
+  const [commentErrors, setCommentErrors] = useState<Errors | null>(null);
   const [commentBusy, setCommentBusy] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function Article() {
         if (err instanceof ApiError && err.status === 404) {
           setNotFound(true);
         } else {
-          setErrors(errorToMessages(err));
+          setErrors(toErrors(err));
         }
       });
     api
@@ -60,7 +60,7 @@ export function Article() {
       await api.deleteArticle(slug);
       navigate("/");
     } catch (err) {
-      setErrors(errorToMessages(err));
+      setErrors(toErrors(err));
     }
   }, [slug, navigate]);
 
@@ -74,7 +74,7 @@ export function Article() {
       setComments((prev) => [created, ...prev]);
       setCommentBody("");
     } catch (err) {
-      setCommentErrors(errorToMessages(err));
+      setCommentErrors(toErrors(err));
     } finally {
       setCommentBusy(false);
     }
@@ -86,7 +86,7 @@ export function Article() {
       await api.deleteComment(slug, id);
       setComments((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      setCommentErrors(errorToMessages(err));
+      setCommentErrors(toErrors(err));
     }
   };
 
@@ -123,7 +123,7 @@ export function Article() {
         </div>
       ) : errors && !article ? (
         <div className="container page">
-          <ErrorMessages messages={errors} />
+          <ErrorMessages errors={errors} />
         </div>
       ) : !article ? (
         <div className="container page">Loading article...</div>
@@ -161,7 +161,7 @@ export function Article() {
 
             <div className="row">
               <div className="col-xs-12 col-md-8 offset-md-2">
-                <ErrorMessages messages={commentErrors} />
+                <ErrorMessages errors={commentErrors} />
                 {state === "authenticated" && user ? (
                   <form className="card comment-form" onSubmit={onPostComment}>
                     <div className="card-block">

@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import type { Errors } from "../api/types";
 import type { UpdateUser } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages, errorToMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /**
  * /settings。現在ユーザーの設定を更新する。
@@ -17,7 +18,7 @@ export function Settings() {
   const [bio, setBio] = useState(user?.bio ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<string[] | null>(null);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (e: FormEvent) => {
@@ -31,7 +32,7 @@ export function Settings() {
       setUser(updated);
       navigate(`/profile/${updated.username}`);
     } catch (err) {
-      setErrors(errorToMessages(err));
+      setErrors(toErrors(err));
       setBusy(false);
     }
   };
@@ -47,7 +48,7 @@ export function Settings() {
         <div className="row">
           <div className="col-md-6 offset-md-3 col-xs-12">
             <h1 className="text-xs-center">Your Settings</h1>
-            <ErrorMessages messages={errors} />
+            <ErrorMessages errors={errors} />
             <form onSubmit={onSubmit}>
               <fieldset>
                 <fieldset className="form-group">

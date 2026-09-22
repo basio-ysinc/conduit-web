@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Article } from "../api/types";
+import type { Article, Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";
-import { errorToMessages } from "../components/ErrorMessages";
+import { toErrors } from "../components/ErrorMessages";
 
 /**
  * / と /tag/:tag。Global Feed / Your Feed / タグ絞り込みを表示する。
@@ -21,7 +21,7 @@ export function Home() {
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [articlesCount, setArticlesCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string[] | null>(null);
+  const [error, setError] = useState<Errors | null>(null);
   const [tags, setTags] = useState<string[]>([]);
 
   const isYourFeed = feed === "following" && !tag;
@@ -45,7 +45,7 @@ export function Home() {
       .catch((err: unknown) => {
         if (cancelled) return;
         setArticles([]);
-        setError(errorToMessages(err));
+        setError(toErrors(err));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

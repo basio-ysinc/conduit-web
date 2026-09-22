@@ -2,11 +2,6 @@
  * 認証状態(現在ユーザー)を保持する context。
  * token は localStorage(`jwtToken`)に保存し、マウント時に GET /user で
  * 復元する。e2e 契約の window.__conduit_debug__ もここで公開する。
- *
- * 起動時の GET /user 失敗の扱い:
- * - 4XX: 認証エラー。token を破棄して unauthenticated にする
- * - 5XX / ネットワークエラー / 不正なレスポンス: 一時障害。token を保持したまま
- *   unavailable にし、画面には "Connecting" インジケータを出す
  */
 import {
   type ReactNode,
@@ -32,8 +27,6 @@ export interface AuthContextValue {
   /** 設定更新などで最新の User を反映する。 */
   setUser: (user: User) => void;
   signOut: () => void;
-  /** unavailable 状態からの再接続。GET /user をやり直す。 */
-  retry: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -59,33 +52,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
   userRef.current = user;
 
-  const fetchCurrentUser = useCallback(() => {
-    if (!getToken()) {
-      setState("unauthenticated");
-      return;
-    }
-    setState("loading");
+  useEffect(() => {
+    if (!getToken()) return;
+    let cancelled = false;
     api
       .getCurrentUser()
       .then((u) => {
+        if (cancelled) return;
         setToken(u.token);
+        userRef.current = u;
         setUserState(u);
+        stateRef.current = "authenticated";
         setState("authenticated");
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
+        // 4XX は認証エラーとして token を破棄する。5XX / ネットワークエラーは
+        // 一時障害とみなし、token を残したまま unavailable に落とす
         if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
           clearToken();
-          setUserState(null);
+          stateRef.current = "unauthenticated";
           setState("unauthenticated");
         } else {
+          stateRef.current = "unavailable";
           setState("unavailable");
         }
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
 
   useEffect(() => {
     window.__conduit_debug__ = {
@@ -116,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ state, user, signIn, setUser, signOut, retry: fetchCurrentUser }),
-    [state, user, signIn, setUser, signOut, fetchCurrentUser],
+    () => ({ state, user, signIn, setUser, signOut }),
+    [state, user, signIn, setUser, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

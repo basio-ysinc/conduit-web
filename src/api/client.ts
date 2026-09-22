@@ -75,7 +75,6 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   if (!res.ok) throw new ApiError(res.status, await parseErrors(res));
   if (res.status === 204) return undefined as T;
-  // 空ボディや不正な JSON は SyntaxError として投げる(呼び出し側でサーバ障害として扱う)
   return (await res.json()) as T;
 }
 
