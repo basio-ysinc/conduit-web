@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { ApiError, api } from "../api/client";
-import type { Article, Profile as ProfileModel } from "../api/types";
+import type { Article, Errors, Profile as ProfileModel } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";

@@ -12,7 +12,9 @@ export function toErrors(err: unknown): Errors {
     if (Object.keys(err.errors).length > 0) return err.errors;
     return { error: [`Request failed with status ${err.status}`] };
   }
-  return { error: ["Unable to connect to the server. Please check your connection and try again."] };
+  return {
+    error: ["Unable to connect to the server. Please check your connection and try again."],
+  };
 }
 
 /** API のエラー(GenericErrorModel)を .error-messages に項目ごとに表示する。 */

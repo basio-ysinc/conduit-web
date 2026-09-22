@@ -28,8 +28,12 @@ TMP="$(mktemp -d)"; trap '{ kill "$API_PID" 2>/dev/null && wait "$API_PID" 2>/de
 API_PID=$!
 for _ in $(seq 1 50); do curl -sf "http://localhost:$API_PORT/api/health" >/dev/null && break; sleep 0.2; done
 curl -sf "http://localhost:$API_PORT/api/health" >/dev/null || { echo "conduit-api did not start"; cat "$TMP/api.log"; exit 1; }
-export VITE_API_URL="http://localhost:$API_PORT/api"
-export API_BASE="$VITE_API_URL"
+# ブラウザからの API 呼び出しは同一オリジンの /api に向け、vite preview の proxy
+# (vite.config.ts, API_PROXY_TARGET) で conduit-api に中継する。CORS を避けるため。
+# API_BASE はテストからの直接呼び出し(Node 側)なので絶対 URL のまま。
+export VITE_API_URL="/api"
+export API_PROXY_TARGET="http://localhost:$API_PORT"
+export API_BASE="http://localhost:$API_PORT/api"
 export TEST_MODE="${TEST_MODE:-fullstack}"
 pnpm build >/dev/null
 PATHS=()
