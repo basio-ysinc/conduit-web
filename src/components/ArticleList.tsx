@@ -49,7 +49,7 @@ export function ArticleList({
   loading: boolean;
   onChange: (article: Article) => void;
 }) {
-  if (loading) return <div className="article-preview">Loading articles...</div>;
+  if (loading) return <div className="loading">Loading articles...</div>;
   if (articles.length === 0) {
     return <div className="empty-feed-message">No articles are here... yet.</div>;
   }
