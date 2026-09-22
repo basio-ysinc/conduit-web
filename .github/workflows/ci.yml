@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: basio-ysinc/conduit-api
+          path: ../conduit-api
+          token: ${{ secrets.CONDUIT_API_TOKEN || github.token }}
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm verify
+        env:
+          CI: "true"
+          CONDUIT_API_DIR: ../conduit-api
