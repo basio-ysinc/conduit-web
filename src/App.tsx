@@ -1,35 +1,68 @@
-import { Link, Route, Routes } from "react-router-dom";
-import { Placeholder } from "./pages/Placeholder";
+import { Route, Routes } from "react-router-dom";
+import { useAuth } from "./auth/AuthContext";
+import { Navbar } from "./components/Navbar";
+import { RequireAuth } from "./components/RequireAuth";
+import { Article } from "./pages/Article";
+import { Editor } from "./pages/Editor";
+import { Home } from "./pages/Home";
+import { Login } from "./pages/Login";
+import { NotFound } from "./pages/NotFound";
+import { Profile } from "./pages/Profile";
+import { Register } from "./pages/Register";
+import { Settings } from "./pages/Settings";
 
-/** ルート定義。各画面は src/pages/ に置き、ここで差し替える。 */
+/**
+ * ルート定義。画面は src/pages/ に置く。
+ * サーバ一時障害(unavailable)時は "Connecting" インジケータを常時出す。
+ */
 export function App() {
+  const { state, retry } = useAuth();
   return (
     <>
-      <nav className="navbar navbar-light">
+      <Navbar />
+      {state === "unavailable" && (
         <div className="container">
-          <Link className="navbar-brand" to="/">
-            conduit
-          </Link>
-          <ul className="nav navbar-nav pull-xs-right">
-            <li className="nav-item">
-              <Link className="nav-link" to="/">
-                Home
-              </Link>
-            </li>
-          </ul>
+          <p className="text-xs-center">
+            Connecting to the server...{" "}
+            <button type="button" className="btn btn-sm btn-outline-primary" onClick={retry}>
+              Retry
+            </button>
+          </p>
         </div>
-      </nav>
+      )}
       <Routes>
-        <Route path="/" element={<Placeholder name="Home" />} />
-        <Route path="/login" element={<Placeholder name="Sign in" />} />
-        <Route path="/register" element={<Placeholder name="Sign up" />} />
-        <Route path="/settings" element={<Placeholder name="Settings" />} />
-        <Route path="/editor" element={<Placeholder name="Editor" />} />
-        <Route path="/editor/:slug" element={<Placeholder name="Editor" />} />
-        <Route path="/article/:slug" element={<Placeholder name="Article" />} />
-        <Route path="/profile/:username" element={<Placeholder name="Profile" />} />
-        <Route path="/profile/:username/favorites" element={<Placeholder name="Profile" />} />
-        <Route path="*" element={<Placeholder name="Not found" />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/tag/:tag" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/settings"
+          element={
+            <RequireAuth>
+              <Settings />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/editor"
+          element={
+            <RequireAuth>
+              <Editor />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/editor/:slug"
+          element={
+            <RequireAuth>
+              <Editor />
+            </RequireAuth>
+          }
+        />
+        <Route path="/article/:slug" element={<Article />} />
+        <Route path="/profile/:username" element={<Profile />} />
+        <Route path="/profile/:username/favorites" element={<Profile />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
