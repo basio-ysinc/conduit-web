@@ -17,7 +17,11 @@ if [ ${#FILES[@]} -eq 0 ]; then
 fi
 API_DIR="${CONDUIT_API_DIR:-${ORCA_LOOP_RELATED_API:-../conduit-api}}"
 [ -f "$API_DIR/package.json" ] || { echo "conduit-api not found at $API_DIR (set CONDUIT_API_DIR)"; exit 1; }
-API_PORT="${API_PORT:-3200}"
+# 空いているポートを選ぶ(前回の api が残っていると health check が別プロセスに当たって誤動作する)
+pick_port() { local p="$1"; while lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; do p=$((p+1)); done; echo "$p"; }
+API_PORT="${API_PORT:-$(pick_port 3200)}"
+PREVIEW_PORT="${PREVIEW_PORT:-$(pick_port 4173)}"
+export PREVIEW_PORT
 TMP="$(mktemp -d)"; trap '{ kill "$API_PID" 2>/dev/null && wait "$API_PID" 2>/dev/null; } || true; rm -rf "$TMP"' EXIT
 (cd "$API_DIR" && pnpm install --silent && pnpm build >/dev/null)
 # exec でサブシェルを node に置き換える(そのままだと trap の kill が subshell にしか効かず node が孤儿化する)
