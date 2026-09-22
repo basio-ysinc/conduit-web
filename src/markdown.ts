@@ -63,6 +63,7 @@ function renderInline(escaped: string): string {
   out = out.replace(/~~([^~]+)~~/g, "<del>$1</del>");
 
   // インラインコードを戻す(プレースホルダは本文に現れない \u0000 数字 \u0000 形式)
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: 本文と衝突しないプレースホルダとして制御文字を意図的に使う
   out = out.replace(/\u0000(\d+)\u0000/g, (m, i: string) => {
     const code = codes[Number(i)];
     return code === undefined ? m : `<code>${code}</code>`;
