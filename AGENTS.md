@@ -14,7 +14,7 @@ RealWorld(Conduit)のフロントエンド(Vite + React + react-router)。契約
 
 - `e2e/SELECTORS.md` のクラス名・`name` 属性・ボタン文言を厳守する(テストはこれで要素を探す)
 - チケットで対応した spec ファイルは `e2e/enabled.txt` に追加する。追加した spec が通ることが完了条件
-- E2E は conduit-api を起動して回る。`CONDUIT_API_DIR` に conduit-api の checkout を指定する(orca-loop の worker には related のパスが渡される。既定は `../conduit-api`)。`TEST_MODE=fullstack` で動かす(外部 API とシードユーザーを前提にしない)
+- E2E は conduit-api を起動して回る。conduit-api の checkout は `CONDUIT_API_DIR`、無ければ orca-loop が verify に渡す `ORCA_LOOP_RELATED_API`、それも無ければ `../conduit-api` の順で探す(worker の spec に書かれている related のパスを `CONDUIT_API_DIR` に指定すればよい)。`TEST_MODE=fullstack` で動かす(外部 API とシードユーザーを前提にしない)
 - `pnpm verify`(typecheck / lint / vitest / e2e)が緑であること。個別に回すなら `pnpm test:e2e auth.spec.ts`
 - 依存の追加は最小限に(状態管理ライブラリは入れない。React の context と hooks で足りる)
 
