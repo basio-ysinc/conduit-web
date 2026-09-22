@@ -94,6 +94,33 @@ describe("AuthProvider", () => {
     expect(localStorage.getItem("jwtToken")).toBeNull();
   });
 
+  it("keeps the token and becomes unavailable on a 5XX error", async () => {
+    localStorage.setItem("jwtToken", "stored-token");
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ errors: { server: ["Internal server error"] } }), {
+        status: 500,
+      }),
+    );
+
+    await render();
+
+    expect(auth?.state).toBe("unavailable");
+    expect(auth?.user).toBeNull();
+    expect(localStorage.getItem("jwtToken")).toBe("stored-token");
+    expect(window.__conduit_debug__?.getAuthState()).toBe("unavailable");
+  });
+
+  it("keeps the token and becomes unavailable on a network error", async () => {
+    localStorage.setItem("jwtToken", "stored-token");
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await render();
+
+    expect(auth?.state).toBe("unavailable");
+    expect(auth?.user).toBeNull();
+    expect(localStorage.getItem("jwtToken")).toBe("stored-token");
+  });
+
   it("signIn stores the token and marks the user authenticated", async () => {
     await render();
     const user: User = {

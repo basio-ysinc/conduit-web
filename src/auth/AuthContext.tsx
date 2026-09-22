@@ -13,11 +13,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type { User } from "../api/types";
 import { clearToken, getToken, setToken } from "./token";
 
-export type AuthState = "loading" | "authenticated" | "unauthenticated";
+export type AuthState = "loading" | "authenticated" | "unauthenticated" | "unavailable";
 
 export interface AuthContextValue {
   state: AuthState;
@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 interface ConduitDebug {
   getToken: () => string | null;
-  getAuthState: () => AuthState | "unavailable";
+  getAuthState: () => AuthState;
   getCurrentUser: () => User | null;
 }
 
@@ -65,11 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         stateRef.current = "authenticated";
         setState("authenticated");
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        clearToken();
-        stateRef.current = "unauthenticated";
-        setState("unauthenticated");
+        // 4XX は認証エラーとして token を破棄する。5XX / ネットワークエラーは
+        // 一時障害とみなし、token を残したまま unavailable に落とす
+        if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+          clearToken();
+          stateRef.current = "unauthenticated";
+          setState("unauthenticated");
+        } else {
+          stateRef.current = "unavailable";
+          setState("unavailable");
+        }
       });
     return () => {
       cancelled = true;
