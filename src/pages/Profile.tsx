@@ -24,6 +24,7 @@ export function Profile() {
   const [profile, setProfile] = useState<ProfileModel | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Errors | null>(null);
+  const [actionErrors, setActionErrors] = useState<Errors | null>(null);
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [articlesCount, setArticlesCount] = useState(0);
   const [listLoading, setListLoading] = useState(true);
@@ -35,6 +36,7 @@ export function Profile() {
     setProfile(null);
     setNotFound(false);
     setProfileErrors(null);
+    setActionErrors(null);
     api
       .getProfile(username)
       .then((p) => {
@@ -105,6 +107,7 @@ export function Profile() {
                   <img className="user-img" src={avatarUrl(profile.image)} alt="" />
                   <h4>{profile.username}</h4>
                   <p>{profile.bio ?? ""}</p>
+                  <ErrorMessages errors={actionErrors} />
                   {isOwn ? (
                     <Link className="btn btn-sm btn-outline-secondary action-btn" to="/settings">
                       <i className="ion-gear-a" /> Edit Profile Settings
@@ -112,8 +115,11 @@ export function Profile() {
                   ) : (
                     <FollowButton
                       profile={profile}
-                      onChange={setProfile}
-                      onError={(err) => setProfileErrors(toErrors(err))}
+                      onChange={(p) => {
+                        setActionErrors(null);
+                        setProfile(p);
+                      }}
+                      onError={(err) => setActionErrors(toErrors(err))}
                     />
                   )}
                 </>

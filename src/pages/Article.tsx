@@ -20,6 +20,7 @@ export function Article() {
   const [article, setArticle] = useState<ArticleModel | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [errors, setErrors] = useState<Errors | null>(null);
+  const [actionErrors, setActionErrors] = useState<Errors | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [commentErrors, setCommentErrors] = useState<Errors | null>(null);
@@ -28,6 +29,7 @@ export function Article() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+    setActionErrors(null);
     api
       .getArticle(slug)
       .then((a) => {
@@ -60,7 +62,7 @@ export function Article() {
       await api.deleteArticle(slug);
       navigate("/");
     } catch (err) {
-      setErrors(toErrors(err));
+      setActionErrors(toErrors(err));
     }
   }, [slug, navigate]);
 
@@ -107,7 +109,11 @@ export function Article() {
       <>
         <FollowButton
           profile={article.author}
-          onChange={(p) => setArticle((prev) => (prev ? { ...prev, author: p } : prev))}
+          onChange={(p) => {
+            setActionErrors(null);
+            setArticle((prev) => (prev ? { ...prev, author: p } : prev));
+          }}
+          onError={(err) => setActionErrors(toErrors(err))}
         />
         <FavoriteButton article={article} onChange={setArticle} />
       </>
@@ -137,6 +143,7 @@ export function Article() {
           </div>
 
           <div className="container page">
+            <ErrorMessages errors={actionErrors} />
             <div className="row article-content">
               <div className="col-md-12">
                 <div
