@@ -1,3 +1,5 @@
 # main で必ず通る E2E spec の一覧。1 行 1 ファイル。チケットで対応した spec をここに追加する。
 # 例: health.spec.ts
+health.spec.ts
+auth.spec.ts
 social.spec.ts
