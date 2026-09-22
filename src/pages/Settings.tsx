@@ -1,56 +1,10 @@
-import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, toErrors } from "../api/client";
-import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages } from "../components/ErrorMessages";
 
+/** /settings。ログアウトのみ先行実装(設定フォーム本体は別チケット)。 */
 export function Settings() {
-  const { user, setUser, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
-  const [image, setImage] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<Errors | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    setImage(user.image ?? "");
-    setUsername(user.username);
-    setBio(user.bio ?? "");
-    setEmail(user.email);
-  }, [user]);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    setBusy(true);
-    setErrors(null);
-    try {
-      const updated = await api.updateCurrentUser({
-        image,
-        username,
-        bio,
-        email,
-        ...(password ? { password } : {}),
-      });
-      setUser(updated);
-      navigate(`/profile/${updated.username}`);
-    } catch (err) {
-      setErrors(toErrors(err));
-      setBusy(false);
-    }
-  }
-
-  function onLogout() {
-    signOut();
-    navigate("/");
-  }
-
-  if (!user) return null;
 
   return (
     <div className="settings-page">
@@ -58,72 +12,15 @@ export function Settings() {
         <div className="row">
           <div className="col-md-6 offset-md-3 col-xs-12">
             <h1 className="text-xs-center">Your Settings</h1>
-            <ErrorMessages errors={errors} />
-            <form onSubmit={onSubmit}>
-              <fieldset>
-                <fieldset className="form-group">
-                  <input
-                    name="image"
-                    type="text"
-                    className="form-control"
-                    placeholder="URL of profile picture"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                  />
-                </fieldset>
-                <fieldset className="form-group">
-                  <input
-                    name="username"
-                    type="text"
-                    className="form-control form-control-lg"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </fieldset>
-                <fieldset className="form-group">
-                  <textarea
-                    name="bio"
-                    className="form-control form-control-lg"
-                    rows={8}
-                    placeholder="Short bio about you"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                  />
-                </fieldset>
-                <fieldset className="form-group">
-                  <input
-                    name="email"
-                    type="email"
-                    className="form-control form-control-lg"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </fieldset>
-                <fieldset className="form-group">
-                  <input
-                    name="password"
-                    type="password"
-                    className="form-control form-control-lg"
-                    placeholder="New Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </fieldset>
-                <button
-                  type="submit"
-                  className="btn btn-lg btn-primary pull-xs-right"
-                  disabled={busy}
-                >
-                  Update Settings
-                </button>
-              </fieldset>
-            </form>
             <hr />
-            <button type="button" className="btn btn-outline-danger" onClick={onLogout}>
+            <button
+              className="btn btn-outline-danger"
+              type="button"
+              onClick={() => {
+                signOut();
+                navigate("/");
+              }}
+            >
               Or click here to logout
             </button>
           </div>

@@ -1,32 +1,34 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, toErrors } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages } from "../components/ErrorMessages";
 
+/** /register。成功したら token を保存してホームへ遷移する。 */
 export function Register() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState<Errors | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    setBusy(true);
+    const data = new FormData(e.currentTarget);
     setErrors(null);
+    setSubmitting(true);
     try {
       const user = await api.register({
-        username: String(fd.get("username") ?? ""),
-        email: String(fd.get("email") ?? ""),
-        password: String(fd.get("password") ?? ""),
+        username: String(data.get("username") ?? ""),
+        email: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
       });
       signIn(user);
       navigate("/");
     } catch (err) {
-      setErrors(toErrors(err));
-      setBusy(false);
+      setErrors(err instanceof ApiError ? err.errors : { body: ["An unexpected error occurred"] });
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -43,35 +45,32 @@ export function Register() {
             <form onSubmit={onSubmit}>
               <fieldset className="form-group">
                 <input
-                  name="username"
+                  className="form-control form-control-lg"
                   type="text"
-                  className="form-control form-control-lg"
+                  name="username"
                   placeholder="Username"
-                  required
                 />
               </fieldset>
               <fieldset className="form-group">
                 <input
-                  name="email"
+                  className="form-control form-control-lg"
                   type="email"
-                  className="form-control form-control-lg"
+                  name="email"
                   placeholder="Email"
-                  required
                 />
               </fieldset>
               <fieldset className="form-group">
                 <input
-                  name="password"
-                  type="password"
                   className="form-control form-control-lg"
+                  type="password"
+                  name="password"
                   placeholder="Password"
-                  required
                 />
               </fieldset>
               <button
-                type="submit"
                 className="btn btn-lg btn-primary pull-xs-right"
-                disabled={busy}
+                type="submit"
+                disabled={submitting}
               >
                 Sign up
               </button>

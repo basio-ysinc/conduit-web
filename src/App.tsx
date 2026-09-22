@@ -9,7 +9,6 @@ import { Placeholder } from "./pages/Placeholder";
 import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
 import { Settings } from "./pages/Settings";
-import { Tag } from "./pages/Tag";
 
 /** ルート定義。各画面は src/pages/ に置き、ここで差し替える。 */
 export function App() {
@@ -18,7 +17,7 @@ export function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/tag/:tag" element={<Tag />} />
+        <Route path="/tag/:tag" element={<Placeholder name="Home" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -41,7 +40,7 @@ export function App() {
           path="/editor/:slug"
           element={
             <RequireAuth>
-              <Editor />
+              <Placeholder name="Editor" />
             </RequireAuth>
           }
         />

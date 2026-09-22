@@ -1,12 +1,11 @@
-import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { type FormEvent, type KeyboardEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, toErrors } from "../api/client";
 import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages } from "../components/ErrorMessages";
 
 export function Editor() {
-  const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
@@ -16,19 +15,6 @@ export function Editor() {
   const [tagList, setTagList] = useState<string[]>([]);
   const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!slug || !user) return;
-    api
-      .getArticle(slug)
-      .then((article) => {
-        setTitle(article.title);
-        setDescription(article.description);
-        setBody(article.body ?? "");
-        setTagList(article.tagList);
-      })
-      .catch(() => navigate("/"));
-  }, [slug, user, navigate]);
 
   function addTag(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
@@ -44,9 +30,7 @@ export function Editor() {
     setBusy(true);
     setErrors(null);
     try {
-      const article = slug
-        ? await api.updateArticle(slug, { title, description, body, tagList })
-        : await api.createArticle({ title, description, body, tagList });
+      const article = await api.createArticle({ title, description, body, tagList });
       navigate(`/article/${article.slug}`);
     } catch (err) {
       setErrors(toErrors(err));
@@ -72,7 +56,6 @@ export function Editor() {
                     placeholder="Article Title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    required
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -83,7 +66,6 @@ export function Editor() {
                     placeholder="What's this article about?"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    required
                   />
                 </fieldset>
                 <fieldset className="form-group">
@@ -94,7 +76,6 @@ export function Editor() {
                     placeholder="Write your article (in markdown)"
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    required
                   />
                 </fieldset>
                 <fieldset className="form-group">
