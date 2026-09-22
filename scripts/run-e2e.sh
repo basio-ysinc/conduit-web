@@ -24,16 +24,16 @@ PREVIEW_PORT="${PREVIEW_PORT:-$(pick_port 4173)}"
 export PREVIEW_PORT
 TMP="$(mktemp -d)"; trap '{ kill "$API_PID" 2>/dev/null && wait "$API_PID" 2>/dev/null; } || true; rm -rf "$TMP"' EXIT
 (cd "$API_DIR" && pnpm install --silent && pnpm build >/dev/null)
-(cd "$API_DIR" && PORT="$API_PORT" DATABASE_PATH="$TMP/e2e.db" node dist/index.js >"$TMP/api.log" 2>&1) &
+# exec でサブシェルを node に置き換える(そのままだと trap の kill が subshell にしか効かず node が孤儿化する)
+(cd "$API_DIR" && exec env PORT="$API_PORT" DATABASE_PATH="$TMP/e2e.db" node dist/index.js >"$TMP/api.log" 2>&1) &
 API_PID=$!
 for _ in $(seq 1 50); do curl -sf "http://localhost:$API_PORT/api/health" >/dev/null && break; sleep 0.2; done
 curl -sf "http://localhost:$API_PORT/api/health" >/dev/null || { echo "conduit-api did not start"; cat "$TMP/api.log"; exit 1; }
-# ブラウザからの API 呼び出しは同一オリジンの /api に向け、vite preview の proxy
-# (vite.config.ts, API_PROXY_TARGET) で conduit-api に中継する。CORS を避けるため。
-# API_BASE はテストからの直接呼び出し(Node 側)なので絶対 URL のまま。
+# ブラウザは同一オリジンの /api に投げ、vite preview が API_PROXY_TARGET にプロキシする
+# (conduit-api は CORS を返さない)。API_BASE はテストランナーが直接 API を叩く用の絶対 URL。
 export VITE_API_URL="/api"
 export API_PROXY_TARGET="http://localhost:$API_PORT"
-export API_BASE="http://localhost:$API_PORT/api"
+export API_BASE="$API_PROXY_TARGET/api"
 export TEST_MODE="${TEST_MODE:-fullstack}"
 pnpm build >/dev/null
 PATHS=()
