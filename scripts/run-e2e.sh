@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # conduit-api を一時 DB で起動し、その API に向けてビルドした web に対して Playwright を回す。
 # 引数に spec ファイル名(auth.spec.ts など)を渡すとそれだけ、無ければ e2e/enabled.txt に列挙されたファイルを回す。
-# CONDUIT_API_DIR: conduit-api の checkout(既定 ../conduit-api、CI では .deps/conduit-api)。orca-loop の worker には related のパスが渡される。
+# CONDUIT_API_DIR: conduit-api の checkout。省略時は orca-loop が渡す ORCA_LOOP_RELATED_API、それも無ければ ../conduit-api(CI では .deps/conduit-api)。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 FILES=("$@")
@@ -15,7 +15,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
   echo "no e2e specs enabled (e2e/enabled.txt is empty); nothing to run"
   exit 0
 fi
-API_DIR="${CONDUIT_API_DIR:-../conduit-api}"
+API_DIR="${CONDUIT_API_DIR:-${ORCA_LOOP_RELATED_API:-../conduit-api}}"
 [ -f "$API_DIR/package.json" ] || { echo "conduit-api not found at $API_DIR (set CONDUIT_API_DIR)"; exit 1; }
 API_PORT="${API_PORT:-3200}"
 TMP="$(mktemp -d)"; trap '{ kill "$API_PID" 2>/dev/null && wait "$API_PID" 2>/dev/null; } || true; rm -rf "$TMP"' EXIT
