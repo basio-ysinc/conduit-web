@@ -4,8 +4,10 @@ import { RequireAuth } from "./components/RequireAuth";
 import { Article } from "./pages/Article";
 import { Editor } from "./pages/Editor";
 import { Home } from "./pages/Home";
+import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
 import { Register } from "./pages/Register";
+import { Settings } from "./pages/Settings";
 
 /** ルート定義。各画面は src/pages/ に置き、ここで差し替える。 */
 export function App() {
@@ -15,13 +17,13 @@ export function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/tag/:tag" element={<Placeholder name="Home" />} />
-        <Route path="/login" element={<Placeholder name="Sign in" />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
           path="/settings"
           element={
             <RequireAuth>
-              <Placeholder name="Settings" />
+              <Settings />
             </RequireAuth>
           }
         />
