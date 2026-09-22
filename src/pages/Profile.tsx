@@ -19,6 +19,8 @@ export function Profile() {
   useEffect(() => {
     if (!username) return;
     let cancelled = false;
+    setProfile(null);
+    setNotFound(false);
     api
       .getProfile(username)
       .then((profile) => {

@@ -51,6 +51,9 @@ export function ArticlePage() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+    setArticle(null);
+    setAuthorProfile(null);
+    setNotFound(false);
     api
       .getArticle(slug)
       .then(async (article) => {
