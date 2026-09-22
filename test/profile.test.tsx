@@ -167,6 +167,26 @@ describe("Profile", () => {
     expect(container.querySelector(".empty-feed-message")).not.toBeNull();
   });
 
+  it("keeps the article on another user's Favorited tab when I unfavorite it", async () => {
+    auth.user = testUser;
+    apiMock.getProfile.mockResolvedValue(bob);
+    apiMock.getArticles.mockResolvedValue({ articles: [bobsArticle], articlesCount: 1 });
+    apiMock.unfavoriteArticle.mockResolvedValue({
+      ...bobsArticle,
+      favorited: false,
+      favoritesCount: 0,
+    });
+
+    const container = await render("/profile/bob/favorites");
+    const favButton = container.querySelector(".article-preview button");
+
+    await click(favButton);
+
+    expect(apiMock.unfavoriteArticle).toHaveBeenCalledWith("bobs-post");
+    // bob はまだお気に入りしているので一覧には残る
+    expect(container.querySelectorAll(".article-preview")).toHaveLength(1);
+  });
+
   it("shows 'User not found' when the profile does not exist", async () => {
     auth.user = testUser;
     apiMock.getProfile.mockRejectedValue(new Error("404"));

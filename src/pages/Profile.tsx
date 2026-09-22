@@ -54,15 +54,17 @@ export function Profile() {
     };
   }, [username, favorited]);
 
+  const isOwn = user?.username === username;
+
   const onArticleChange = useCallback(
     (updated: Article) => {
       setArticles((prev) =>
-        favorited && !updated.favorited
+        favorited && isOwn && !updated.favorited
           ? prev.filter((a) => a.slug !== updated.slug)
           : prev.map((a) => (a.slug === updated.slug ? updated : a)),
       );
     },
-    [favorited],
+    [favorited, isOwn],
   );
 
   if (notFound) {
@@ -72,8 +74,6 @@ export function Profile() {
       </div>
     );
   }
-
-  const isOwn = user?.username === username;
 
   return (
     <div className="profile-page">
