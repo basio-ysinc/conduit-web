@@ -8,7 +8,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: basio-ysinc/conduit-api
-          path: ../conduit-api
+          path: .deps/conduit-api
           token: ${{ secrets.CONDUIT_API_TOKEN || github.token }}
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
@@ -19,4 +19,4 @@ jobs:
       - run: pnpm verify
         env:
           CI: "true"
-          CONDUIT_API_DIR: ../conduit-api
+          CONDUIT_API_DIR: .deps/conduit-api

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # conduit-api を一時 DB で起動し、その API に向けてビルドした web に対して Playwright を回す。
 # 引数に spec ファイル名(auth.spec.ts など)を渡すとそれだけ、無ければ e2e/enabled.txt に列挙されたファイルを回す。
-# CONDUIT_API_DIR: conduit-api の checkout(既定 ../conduit-api)。orca-loop の worker には related のパスが渡される。
+# CONDUIT_API_DIR: conduit-api の checkout(既定 ../conduit-api、CI では .deps/conduit-api)。orca-loop の worker には related のパスが渡される。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 FILES=("$@")
