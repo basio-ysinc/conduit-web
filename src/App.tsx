@@ -37,7 +37,7 @@ export function App() {
           path="/editor/:slug"
           element={
             <RequireAuth>
-              <Editor />
+              <Placeholder name="Editor" />
             </RequireAuth>
           }
         />
