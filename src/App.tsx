@@ -3,6 +3,7 @@ import { Navbar } from "./components/Navbar";
 import { RequireAuth } from "./components/RequireAuth";
 import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
+import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
 import { Settings } from "./pages/Settings";
 
@@ -41,7 +42,7 @@ export function App() {
           }
         />
         <Route path="/article/:slug" element={<Placeholder name="Article" />} />
-        <Route path="/profile/:username" element={<Placeholder name="Profile" />} />
+        <Route path="/profile/:username" element={<Profile />} />
         <Route path="/profile/:username/favorites" element={<Placeholder name="Profile" />} />
         <Route path="*" element={<Placeholder name="Not found" />} />
       </Routes>
