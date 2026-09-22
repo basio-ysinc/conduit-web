@@ -1,16 +1,17 @@
 import { defineConfig } from "@playwright/test";
 import { baseConfig } from "./e2e/playwright.base";
 
-// WEB_PORT で preview のポートを変えられる(ローカルで他の worktree と e2e が衝突するのを避ける)。
-const webPort = Number(process.env.WEB_PORT ?? 4173);
+// run-e2e.sh が空きポートを PREVIEW_PORT に入れる。既存の preview を使い回すと
+// 別の API に proxy された古いサーバに当たるので、常に自分で起動する。
+const port = process.env.PREVIEW_PORT ?? "4173";
 
 export default defineConfig({
   ...baseConfig,
-  use: { ...baseConfig.use, baseURL: `http://localhost:${webPort}` },
+  use: { ...baseConfig.use, baseURL: `http://localhost:${port}` },
   webServer: {
-    command: "pnpm preview",
-    url: `http://localhost:${webPort}`,
-    reuseExistingServer: !process.env.CI,
+    command: `pnpm preview --port ${port}`,
+    url: `http://localhost:${port}`,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

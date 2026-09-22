@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Profile } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 
@@ -12,21 +12,21 @@ export function FollowButton({
   profile: Profile;
   onChange: (profile: Profile) => void;
 }) {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
     setBusy(true);
     try {
-      const res = profile.following
-        ? await api.unfollowUser(profile.username, token)
-        : await api.followUser(profile.username, token);
-      onChange(res.profile);
+      const updated = profile.following
+        ? await api.unfollowUser(profile.username)
+        : await api.followUser(profile.username);
+      onChange(updated);
     } finally {
       setBusy(false);
     }

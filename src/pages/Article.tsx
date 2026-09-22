@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Article, Profile } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { FavoriteButtonLarge } from "../components/FavoriteButton";
@@ -55,7 +55,7 @@ function ArticleMeta({
 
 export function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null>(null);
   const [authorProfile, setAuthorProfile] = useState<Profile | null>(null);
@@ -65,17 +65,17 @@ export function ArticlePage() {
     if (!slug) return;
     let cancelled = false;
     api
-      .getArticle(slug, token ?? undefined)
-      .then(async (res) => {
+      .getArticle(slug)
+      .then(async (article) => {
         if (cancelled) return;
-        setArticle(res.article);
+        setArticle(article);
         // article.author.following は API 側で常に false のことがあるため、
         // follow 状態は profiles エンドポイントから別途取る
         try {
-          const p = await api.getProfile(res.article.author.username, token ?? undefined);
-          if (!cancelled) setAuthorProfile(p.profile);
+          const p = await api.getProfile(article.author.username);
+          if (!cancelled) setAuthorProfile(p);
         } catch {
-          if (!cancelled) setAuthorProfile(res.article.author);
+          if (!cancelled) setAuthorProfile(article.author);
         }
       })
       .catch(() => {
@@ -84,13 +84,13 @@ export function ArticlePage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, token]);
+  }, [slug]);
 
   const onDelete = useCallback(async () => {
-    if (!slug || !token) return;
-    await api.deleteArticle(token, slug);
+    if (!slug || !user) return;
+    await api.deleteArticle(slug);
     navigate("/");
-  }, [slug, token, navigate]);
+  }, [slug, user, navigate]);
 
   if (notFound) {
     return (

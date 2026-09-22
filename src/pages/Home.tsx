@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Article } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ArticleList } from "../components/ArticleList";
 
 export function Home() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const feed = searchParams.get("feed") === "following" && user ? "following" : "global";
   const [articles, setArticles] = useState<Article[]>([]);
@@ -17,9 +17,9 @@ export function Home() {
     let cancelled = false;
     setLoading(true);
     const promise =
-      feed === "following" && token
-        ? api.getFeed(token, { limit: 50 })
-        : api.listArticles({ limit: 50 }, token ?? undefined);
+      feed === "following" && user
+        ? api.getArticlesFeed({ limit: 50 })
+        : api.getArticles({ limit: 50 });
     promise
       .then((res) => {
         if (!cancelled) setArticles(res.articles);
@@ -33,12 +33,12 @@ export function Home() {
     return () => {
       cancelled = true;
     };
-  }, [feed, token]);
+  }, [feed, user]);
 
   useEffect(() => {
     api
       .getTags()
-      .then((res) => setTags(res.tags))
+      .then((tags) => setTags(tags))
       .catch(() => setTags([]));
   }, []);
 

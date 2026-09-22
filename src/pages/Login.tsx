@@ -1,25 +1,30 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { errorMessages } from "../api/client";
+import { api, toErrors } from "../api/client";
+import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages } from "../components/ErrorMessages";
 
 export function Login() {
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     setBusy(true);
-    setErrors([]);
+    setErrors(null);
     try {
-      await login(String(fd.get("email") ?? ""), String(fd.get("password") ?? ""));
+      const user = await api.login({
+        email: String(fd.get("email") ?? ""),
+        password: String(fd.get("password") ?? ""),
+      });
+      signIn(user);
       navigate("/");
     } catch (err) {
-      setErrors(errorMessages(err));
+      setErrors(toErrors(err));
       setBusy(false);
     }
   }

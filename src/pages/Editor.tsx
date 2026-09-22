@@ -1,38 +1,34 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import * as api from "../api/client";
-import { errorMessages } from "../api/client";
+import { api, toErrors } from "../api/client";
+import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages } from "../components/ErrorMessages";
 
 export function Editor() {
   const { slug } = useParams<{ slug: string }>();
-  const { user, token, status } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [body, setBody] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tagList, setTagList] = useState<string[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") navigate("/login");
-  }, [status, navigate]);
-
-  useEffect(() => {
-    if (!slug || !token) return;
+    if (!slug || !user) return;
     api
-      .getArticle(slug, token)
-      .then((res) => {
-        setTitle(res.article.title);
-        setDescription(res.article.description);
-        setBody(res.article.body ?? "");
-        setTagList(res.article.tagList);
+      .getArticle(slug)
+      .then((article) => {
+        setTitle(article.title);
+        setDescription(article.description);
+        setBody(article.body ?? "");
+        setTagList(article.tagList);
       })
       .catch(() => navigate("/"));
-  }, [slug, token, navigate]);
+  }, [slug, user, navigate]);
 
   function addTag(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
@@ -44,16 +40,16 @@ export function Editor() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    if (!user) return;
     setBusy(true);
-    setErrors([]);
+    setErrors(null);
     try {
-      const res = slug
-        ? await api.updateArticle(token, slug, { title, description, body, tagList })
-        : await api.createArticle(token, { title, description, body, tagList });
-      navigate(`/article/${res.article.slug}`);
+      const article = slug
+        ? await api.updateArticle(slug, { title, description, body, tagList })
+        : await api.createArticle({ title, description, body, tagList });
+      navigate(`/article/${article.slug}`);
     } catch (err) {
-      setErrors(errorMessages(err));
+      setErrors(toErrors(err));
       setBusy(false);
     }
   }

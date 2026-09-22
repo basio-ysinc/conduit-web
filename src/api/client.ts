@@ -1,156 +1,155 @@
-import type { Article, ArticlesResponse, Profile, User } from "./types";
+/**
+ * openapi.yml の全エンドポイントに対応する型付き API クライアント。
+ * 認証が必要なリクエストには localStorage の token を
+ * `Authorization: Token <jwt>` で付与する。
+ */
+import { getToken } from "../auth/token";
+import { API_URL } from "./config";
+import type {
+  Article,
+  ArticlesQuery,
+  Comment,
+  Errors,
+  FeedQuery,
+  LoginUser,
+  NewArticle,
+  NewComment,
+  NewUser,
+  Profile,
+  UpdateArticle,
+  UpdateUser,
+  User,
+} from "./types";
 
-// API は同一オリジンの /api 経由で呼ぶ。vite dev/preview が VITE_API_URL(vite.config.ts)へ
-// プロキシするため、ブラウザからのクロスオリジン fetch(conduit-api は CORS を返さない)を避けられる。
-const API_BASE = "/api";
-
+/** API が返すエラー。`errors` は GenericErrorModel のフィールド名 -> メッセージ配列。 */
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public errors: Record<string, string[]>,
-  ) {
-    super(`API error ${status}`);
+  readonly status: number;
+  readonly errors: Errors;
+
+  constructor(status: number, errors: Errors) {
+    super(`API request failed with status ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.errors = errors;
   }
 }
 
-/** { field: [msg, ...] } 形式のエラーを表示用文字列に平坦化する。 */
-export function errorMessages(err: unknown): string[] {
-  if (err instanceof ApiError) {
-    return Object.entries(err.errors).flatMap(([field, msgs]) =>
-      msgs.map((m) => (field === "body" ? m : `${field} ${m}`)),
-    );
-  }
-  return ["request failed"];
+function isErrors(value: unknown): value is { errors: Errors } {
+  return typeof value === "object" && value !== null && "errors" in value;
 }
 
-async function request<T>(
-  path: string,
-  { method = "GET", body, token }: { method?: string; body?: unknown; token?: string } = {},
-): Promise<T> {
+/** 不明なエラーを Errors 形式に正規化する(ApiError 以外は汎用メッセージ)。 */
+export function toErrors(err: unknown): Errors {
+  return err instanceof ApiError ? err.errors : { body: ["request failed"] };
+}
+
+async function parseErrors(res: Response): Promise<Errors> {
+  try {
+    const body: unknown = await res.json();
+    if (isErrors(body)) return body.errors;
+  } catch {
+    // ボディが JSON でない / errors を持たない場合は空を返す
+  }
+  return {};
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const token = getToken();
   if (token) headers.Authorization = `Token ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, {
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+
+  const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { errors?: Record<string, string[]> };
-    throw new ApiError(res.status, data.errors ?? { body: [`request failed (${res.status})`] });
-  }
+  if (!res.ok) throw new ApiError(res.status, await parseErrors(res));
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
-// --- users / user ---
-
-export function registerUser(input: { username: string; email: string; password: string }) {
-  return request<{ user: User }>("/users", { method: "POST", body: { user: input } });
-}
-
-export function loginUser(input: { email: string; password: string }) {
-  return request<{ user: User }>("/users/login", { method: "POST", body: { user: input } });
-}
-
-export function getCurrentUser(token: string) {
-  return request<{ user: User }>("/user", { token });
-}
-
-export function updateUser(
-  token: string,
-  input: { username?: string; email?: string; password?: string; bio?: string; image?: string },
-) {
-  return request<{ user: User }>("/user", { method: "PUT", body: { user: input }, token });
-}
-
-// --- profiles ---
-
-export function getProfile(username: string, token?: string) {
-  return request<{ profile: Profile }>(`/profiles/${encodeURIComponent(username)}`, { token });
-}
-
-export function followUser(username: string, token: string) {
-  return request<{ profile: Profile }>(`/profiles/${encodeURIComponent(username)}/follow`, {
-    method: "POST",
-    token,
-  });
-}
-
-export function unfollowUser(username: string, token: string) {
-  return request<{ profile: Profile }>(`/profiles/${encodeURIComponent(username)}/follow`, {
-    method: "DELETE",
-    token,
-  });
-}
-
-// --- articles ---
-
-export function listArticles(
-  params: { tag?: string; author?: string; favorited?: string; limit?: number; offset?: number },
-  token?: string,
-) {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined) q.set(k, String(v));
+function query(params: object): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(
+    params as Record<string, string | number | undefined>,
+  )) {
+    if (value !== undefined) search.set(key, String(value));
   }
-  const qs = q.toString();
-  return request<ArticlesResponse>(`/articles${qs ? `?${qs}` : ""}`, { token });
+  const s = search.toString();
+  return s ? `?${s}` : "";
 }
 
-export function getFeed(token: string, params: { limit?: number; offset?: number } = {}) {
-  const q = new URLSearchParams();
-  if (params.limit !== undefined) q.set("limit", String(params.limit));
-  if (params.offset !== undefined) q.set("offset", String(params.offset));
-  const qs = q.toString();
-  return request<ArticlesResponse>(`/articles/feed${qs ? `?${qs}` : ""}`, { token });
-}
+export const api = {
+  // User and Authentication
+  login: (user: LoginUser) =>
+    request<{ user: User }>("POST", "/users/login", { user }).then((r) => r.user),
+  register: (user: NewUser) =>
+    request<{ user: User }>("POST", "/users", { user }).then((r) => r.user),
+  getCurrentUser: () => request<{ user: User }>("GET", "/user").then((r) => r.user),
+  updateCurrentUser: (user: UpdateUser) =>
+    request<{ user: User }>("PUT", "/user", { user }).then((r) => r.user),
 
-export function getArticle(slug: string, token?: string) {
-  return request<{ article: Article }>(`/articles/${encodeURIComponent(slug)}`, { token });
-}
+  // Profile
+  getProfile: (username: string) =>
+    request<{ profile: Profile }>("GET", `/profiles/${encodeURIComponent(username)}`).then(
+      (r) => r.profile,
+    ),
+  followUser: (username: string) =>
+    request<{ profile: Profile }>("POST", `/profiles/${encodeURIComponent(username)}/follow`).then(
+      (r) => r.profile,
+    ),
+  unfollowUser: (username: string) =>
+    request<{ profile: Profile }>(
+      "DELETE",
+      `/profiles/${encodeURIComponent(username)}/follow`,
+    ).then((r) => r.profile),
 
-export function createArticle(
-  token: string,
-  input: { title: string; description: string; body: string; tagList?: string[] },
-) {
-  return request<{ article: Article }>("/articles", {
-    method: "POST",
-    body: { article: input },
-    token,
-  });
-}
+  // Articles
+  getArticles: (params: ArticlesQuery = {}) =>
+    request<{ articles: Article[]; articlesCount: number }>("GET", `/articles${query(params)}`),
+  getArticlesFeed: (params: FeedQuery = {}) =>
+    request<{ articles: Article[]; articlesCount: number }>(
+      "GET",
+      `/articles/feed${query(params)}`,
+    ),
+  createArticle: (article: NewArticle) =>
+    request<{ article: Article }>("POST", "/articles", { article }).then((r) => r.article),
+  getArticle: (slug: string) =>
+    request<{ article: Article }>("GET", `/articles/${encodeURIComponent(slug)}`).then(
+      (r) => r.article,
+    ),
+  updateArticle: (slug: string, article: UpdateArticle) =>
+    request<{ article: Article }>("PUT", `/articles/${encodeURIComponent(slug)}`, {
+      article,
+    }).then((r) => r.article),
+  deleteArticle: (slug: string) => request<void>("DELETE", `/articles/${encodeURIComponent(slug)}`),
 
-export function updateArticle(
-  token: string,
-  slug: string,
-  input: { title?: string; description?: string; body?: string; tagList?: string[] },
-) {
-  return request<{ article: Article }>(`/articles/${encodeURIComponent(slug)}`, {
-    method: "PUT",
-    body: { article: input },
-    token,
-  });
-}
+  // Comments
+  getComments: (slug: string) =>
+    request<{ comments: Comment[] }>("GET", `/articles/${encodeURIComponent(slug)}/comments`).then(
+      (r) => r.comments,
+    ),
+  createComment: (slug: string, comment: NewComment) =>
+    request<{ comment: Comment }>("POST", `/articles/${encodeURIComponent(slug)}/comments`, {
+      comment,
+    }).then((r) => r.comment),
+  deleteComment: (slug: string, id: number) =>
+    request<void>(
+      "DELETE",
+      `/articles/${encodeURIComponent(slug)}/comments/${encodeURIComponent(id)}`,
+    ),
 
-export function deleteArticle(token: string, slug: string) {
-  return request<void>(`/articles/${encodeURIComponent(slug)}`, { method: "DELETE", token });
-}
+  // Favorites
+  favoriteArticle: (slug: string) =>
+    request<{ article: Article }>("POST", `/articles/${encodeURIComponent(slug)}/favorite`).then(
+      (r) => r.article,
+    ),
+  unfavoriteArticle: (slug: string) =>
+    request<{ article: Article }>("DELETE", `/articles/${encodeURIComponent(slug)}/favorite`).then(
+      (r) => r.article,
+    ),
 
-export function favoriteArticle(token: string, slug: string) {
-  return request<{ article: Article }>(`/articles/${encodeURIComponent(slug)}/favorite`, {
-    method: "POST",
-    token,
-  });
-}
-
-export function unfavoriteArticle(token: string, slug: string) {
-  return request<{ article: Article }>(`/articles/${encodeURIComponent(slug)}/favorite`, {
-    method: "DELETE",
-    token,
-  });
-}
-
-export function getTags() {
-  return request<{ tags: string[] }>("/tags");
-}
+  // Tags
+  getTags: () => request<{ tags: string[] }>("GET", "/tags").then((r) => r.tags),
+};

@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Article } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 
-async function toggleFavorite(article: Article, token: string): Promise<Article> {
-  const res = article.favorited
-    ? await api.unfavoriteArticle(token, article.slug)
-    : await api.favoriteArticle(token, article.slug);
-  return res.article;
+async function toggleFavorite(article: Article): Promise<Article> {
+  return article.favorited
+    ? await api.unfavoriteArticle(article.slug)
+    : await api.favoriteArticle(article.slug);
 }
 
 /** 記事一覧 (.article-preview) 用の件数のみ表示する小さいボタン。 */
@@ -19,18 +18,18 @@ export function FavoriteButtonSmall({
   article: Article;
   onChange: (article: Article) => void;
 }) {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
     setBusy(true);
     try {
-      onChange(await toggleFavorite(article, token));
+      onChange(await toggleFavorite(article));
     } finally {
       setBusy(false);
     }
@@ -56,18 +55,18 @@ export function FavoriteButtonLarge({
   article: Article;
   onChange: (article: Article) => void;
 }) {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
     setBusy(true);
     try {
-      onChange(await toggleFavorite(article, token));
+      onChange(await toggleFavorite(article));
     } finally {
       setBusy(false);
     }

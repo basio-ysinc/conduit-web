@@ -1,10 +1,16 @@
-/** API エラーの一覧表示。SELECTORS.md の .error-messages 契約。 */
-export function ErrorMessages({ errors }: { errors: string[] }) {
-  if (errors.length === 0) return null;
+import type { Errors } from "../api/types";
+
+/** API のエラー(GenericErrorModel)を .error-messages に項目ごとに表示する。 */
+export function ErrorMessages({ errors }: { errors: Errors | null | undefined }) {
+  if (!errors) return null;
+  const items = Object.entries(errors).flatMap(([field, messages]) =>
+    messages.map((message) => `${field} ${message}`),
+  );
+  if (items.length === 0) return null;
   return (
     <ul className="error-messages">
-      {errors.map((e) => (
-        <li key={e}>{e}</li>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
       ))}
     </ul>
   );

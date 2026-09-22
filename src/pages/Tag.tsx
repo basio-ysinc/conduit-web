@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Article } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ArticleList } from "../components/ArticleList";
 
 export function Tag() {
   const { tag } = useParams<{ tag: string }>();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +16,7 @@ export function Tag() {
     let cancelled = false;
     setLoading(true);
     api
-      .listArticles({ tag, limit: 50 }, token ?? undefined)
+      .getArticles({ tag, limit: 50 })
       .then((res) => {
         if (!cancelled) setArticles(res.articles);
       })
@@ -29,7 +29,7 @@ export function Tag() {
     return () => {
       cancelled = true;
     };
-  }, [tag, token]);
+  }, [tag]);
 
   const onArticleChange = useCallback((updated: Article) => {
     setArticles((prev) => prev.map((a) => (a.slug === updated.slug ? updated : a)));

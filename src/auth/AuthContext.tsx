@@ -1,106 +1,126 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import * as api from "../api/client";
+/**
+ * 認証状態(現在ユーザー)を保持する context。
+ * token は localStorage(`jwtToken`)に保存し、マウント時に GET /user で
+ * 復元する。e2e 契約の window.__conduit_debug__ もここで公開する。
+ */
+import {
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { ApiError, api } from "../api/client";
 import type { User } from "../api/types";
+import { clearToken, getToken, setToken } from "./token";
 
-export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+export type AuthState = "loading" | "authenticated" | "unauthenticated" | "unavailable";
 
-const TOKEN_KEY = "jwtToken";
-
-interface AuthContextValue {
-  status: AuthStatus;
+export interface AuthContextValue {
+  state: AuthState;
   user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  /** ログイン/登録成功時に呼ぶ。token を保存して認証状態にする。 */
+  signIn: (user: User) => void;
+  /** 設定更新などで最新の User を反映する。 */
   setUser: (user: User) => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+interface ConduitDebug {
+  getToken: () => string | null;
+  getAuthState: () => AuthState;
+  getCurrentUser: () => User | null;
 }
 
 declare global {
   interface Window {
-    __conduit_debug__?: {
-      getToken: () => string | null;
-      getAuthState: () => "authenticated" | "unauthenticated" | "unavailable" | "loading";
-      getCurrentUser: () => User | null;
-    };
+    __conduit_debug__?: ConduitDebug;
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
-  const [status, setStatus] = useState<AuthStatus>("loading");
+  // token があれば復元を試みるので loading から始める
+  const [state, setState] = useState<AuthState>(() => (getToken() ? "loading" : "unauthenticated"));
+  const stateRef = useRef(state);
+  const userRef = useRef(user);
+  stateRef.current = state;
+  userRef.current = user;
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) {
-      setStatus("unauthenticated");
-      return;
-    }
+    if (!getToken()) return;
     let cancelled = false;
     api
-      .getCurrentUser(token)
-      .then((res) => {
+      .getCurrentUser()
+      .then((u) => {
         if (cancelled) return;
-        setUserState(res.user);
-        setStatus("authenticated");
+        setToken(u.token);
+        userRef.current = u;
+        setUserState(u);
+        stateRef.current = "authenticated";
+        setState("authenticated");
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
-        localStorage.removeItem(TOKEN_KEY);
-        setStatus("unauthenticated");
+        // 4XX は認証エラーとして token を破棄する。5XX / ネットワークエラーは
+        // 一時障害とみなし、token を残したまま unavailable に落とす
+        if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+          clearToken();
+          stateRef.current = "unauthenticated";
+          setState("unauthenticated");
+        } else {
+          stateRef.current = "unavailable";
+          setState("unavailable");
+        }
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const setUser = useCallback((u: User) => {
-    localStorage.setItem(TOKEN_KEY, u.token);
-    setUserState(u);
-    setStatus("authenticated");
+  useEffect(() => {
+    window.__conduit_debug__ = {
+      getToken,
+      getAuthState: () => stateRef.current,
+      getCurrentUser: () => userRef.current,
+    };
+    return () => {
+      window.__conduit_debug__ = undefined;
+    };
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      setUser((await api.loginUser({ email, password })).user);
-    },
-    [setUser],
-  );
+  const signIn = useCallback((u: User) => {
+    setToken(u.token);
+    setUserState(u);
+    setState("authenticated");
+  }, []);
 
-  const register = useCallback(
-    async (username: string, email: string, password: string) => {
-      setUser((await api.registerUser({ username, email, password })).user);
-    },
-    [setUser],
-  );
+  const setUser = useCallback((u: User) => {
+    setToken(u.token);
+    setUserState(u);
+  }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+  const signOut = useCallback(() => {
+    clearToken();
     setUserState(null);
-    setStatus("unauthenticated");
+    setState("unauthenticated");
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, token: user?.token ?? null, login, register, logout, setUser }),
-    [status, user, login, register, logout, setUser],
+    () => ({ state, user, signIn, setUser, signOut }),
+    [state, user, signIn, setUser, signOut],
   );
 
-  useEffect(() => {
-    window.__conduit_debug__ = {
-      getToken: () => localStorage.getItem(TOKEN_KEY),
-      getAuthState: () => status,
-      getCurrentUser: () => user,
-    };
-  }, [status, user]);
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }

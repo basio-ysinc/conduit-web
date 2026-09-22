@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import * as api from "../api/client";
+import { api } from "../api/client";
 import type { Article, Profile as ProfileType } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ArticleList } from "../components/ArticleList";
@@ -8,7 +8,7 @@ import { FollowButton } from "../components/FollowButton";
 
 export function Profile() {
   const { username } = useParams<{ username: string }>();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const favorited = location.pathname.endsWith("/favorites");
   const [profile, setProfile] = useState<ProfileType | null>(null);
@@ -20,9 +20,9 @@ export function Profile() {
     if (!username) return;
     let cancelled = false;
     api
-      .getProfile(username, token ?? undefined)
-      .then((res) => {
-        if (!cancelled) setProfile(res.profile);
+      .getProfile(username)
+      .then((profile) => {
+        if (!cancelled) setProfile(profile);
       })
       .catch(() => {
         if (!cancelled) setNotFound(true);
@@ -30,17 +30,14 @@ export function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [username, token]);
+  }, [username]);
 
   useEffect(() => {
     if (!username) return;
     let cancelled = false;
     setLoading(true);
     api
-      .listArticles(
-        favorited ? { favorited: username, limit: 50 } : { author: username, limit: 50 },
-        token ?? undefined,
-      )
+      .getArticles(favorited ? { favorited: username, limit: 50 } : { author: username, limit: 50 })
       .then((res) => {
         if (!cancelled) setArticles(res.articles);
       })
@@ -53,7 +50,7 @@ export function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [username, favorited, token]);
+  }, [username, favorited]);
 
   const onArticleChange = useCallback(
     (updated: Article) => {

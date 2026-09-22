@@ -1,24 +1,20 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as api from "../api/client";
-import { errorMessages } from "../api/client";
+import { api, toErrors } from "../api/client";
+import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages } from "../components/ErrorMessages";
 
 export function Settings() {
-  const { user, token, status, setUser, logout } = useAuth();
+  const { user, setUser, signOut } = useAuth();
   const navigate = useNavigate();
   const [image, setImage] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (status === "unauthenticated") navigate("/login");
-  }, [status, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -30,27 +26,27 @@ export function Settings() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!token) return;
+    if (!user) return;
     setBusy(true);
-    setErrors([]);
+    setErrors(null);
     try {
-      const res = await api.updateUser(token, {
+      const updated = await api.updateCurrentUser({
         image,
         username,
         bio,
         email,
         ...(password ? { password } : {}),
       });
-      setUser(res.user);
-      navigate(`/profile/${res.user.username}`);
+      setUser(updated);
+      navigate(`/profile/${updated.username}`);
     } catch (err) {
-      setErrors(errorMessages(err));
+      setErrors(toErrors(err));
       setBusy(false);
     }
   }
 
   function onLogout() {
-    logout();
+    signOut();
     navigate("/");
   }
 
