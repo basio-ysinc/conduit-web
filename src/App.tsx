@@ -7,6 +7,7 @@ import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
 import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
+import { Settings } from "./pages/Settings";
 
 /** ルート定義。各画面は src/pages/ に置き、ここで差し替える。 */
 export function App() {
@@ -22,7 +23,7 @@ export function App() {
           path="/settings"
           element={
             <RequireAuth>
-              <Placeholder name="Settings" />
+              <Settings />
             </RequireAuth>
           }
         />

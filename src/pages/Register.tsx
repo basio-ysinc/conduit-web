@@ -1,32 +1,36 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages, toErrors } from "../components/ErrorMessages";
+import { ErrorMessages } from "../components/ErrorMessages";
 
-/** /register。登録成功でそのままログイン状態になりホームへ。 */
+/** /register。成功したら token を保存してホームへ遷移する。 */
 export function Register() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (e: FormEvent) => {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
+    const data = new FormData(e.currentTarget);
     setErrors(null);
+    setSubmitting(true);
     try {
-      signIn(await api.register({ username, email, password }));
+      const user = await api.register({
+        username: String(data.get("username") ?? ""),
+        email: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
+      });
+      signIn(user);
       navigate("/");
     } catch (err) {
-      setErrors(toErrors(err));
-      setBusy(false);
+      setErrors(err instanceof ApiError ? err.errors : { body: ["An unexpected error occurred"] });
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
   return (
     <div className="auth-page">
@@ -45,8 +49,6 @@ export function Register() {
                   type="text"
                   name="username"
                   placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
                 />
               </fieldset>
               <fieldset className="form-group">
@@ -55,8 +57,6 @@ export function Register() {
                   type="email"
                   name="email"
                   placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                 />
               </fieldset>
               <fieldset className="form-group">
@@ -65,14 +65,12 @@ export function Register() {
                   type="password"
                   name="password"
                   placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                 />
               </fieldset>
               <button
                 className="btn btn-lg btn-primary pull-xs-right"
                 type="submit"
-                disabled={busy}
+                disabled={submitting}
               >
                 Sign up
               </button>

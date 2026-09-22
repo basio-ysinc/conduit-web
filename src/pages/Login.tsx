@@ -1,31 +1,35 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages, toErrors } from "../components/ErrorMessages";
+import { ErrorMessages } from "../components/ErrorMessages";
 
-/** /login。認証成功でホームへ。失敗は .error-messages に出して留まる。 */
+/** /login。成功したら token を保存してホームへ遷移する。 */
 export function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Errors | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (e: FormEvent) => {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
+    const data = new FormData(e.currentTarget);
     setErrors(null);
+    setSubmitting(true);
     try {
-      signIn(await api.login({ email, password }));
+      const user = await api.login({
+        email: String(data.get("email") ?? ""),
+        password: String(data.get("password") ?? ""),
+      });
+      signIn(user);
       navigate("/");
     } catch (err) {
-      setErrors(toErrors(err));
-      setBusy(false);
+      setErrors(err instanceof ApiError ? err.errors : { body: ["An unexpected error occurred"] });
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
   return (
     <div className="auth-page">
@@ -44,8 +48,6 @@ export function Login() {
                   type="email"
                   name="email"
                   placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                 />
               </fieldset>
               <fieldset className="form-group">
@@ -54,14 +56,12 @@ export function Login() {
                   type="password"
                   name="password"
                   placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                 />
               </fieldset>
               <button
                 className="btn btn-lg btn-primary pull-xs-right"
                 type="submit"
-                disabled={busy}
+                disabled={submitting}
               >
                 Sign in
               </button>
