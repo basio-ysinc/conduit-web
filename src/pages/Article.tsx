@@ -192,10 +192,8 @@ export function Article() {
                     </div>
                   </form>
                 ) : (
-                  <p>
-                    <Link to="/login">Sign in</Link> or <Link to="/register">sign up</Link> to add
-                    comments on this article.
-                  </p>
+                  // 未ログイン時はフォームを出さない(ナビバーの Sign in が導線)
+                  <p>Sign in or sign up to add comments on this article.</p>
                 )}
 
                 {comments.map((comment) => (
