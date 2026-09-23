@@ -7,7 +7,8 @@ import { avatarUrl } from "../avatar";
 import { formatDate } from "./ArticleMeta";
 import { ErrorMessages } from "./ErrorMessages";
 
-export const ARTICLES_PER_PAGE = 20;
+/** e2e が 1 ページ 10 件を前提にする(url-navigation.spec.ts)。 */
+export const ARTICLES_PER_PAGE = 10;
 
 /** 記事1件のプレビューカード(.article-preview)。 */
 function ArticlePreview({
@@ -94,16 +95,16 @@ export function ArticleList({
 }) {
   if (error) {
     return (
-      <div className="article-preview">
+      <div>
         <ErrorMessages errors={error} />
       </div>
     );
   }
   if (loading || articles === null) {
-    return <div className="article-preview">Loading articles...</div>;
+    return <div>Loading articles...</div>;
   }
   if (articles.length === 0) {
-    return <div className="article-preview empty-feed-message">{emptyMessage}</div>;
+    return <div className="empty-feed-message">{emptyMessage}</div>;
   }
   return (
     <>

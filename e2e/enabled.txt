@@ -7,4 +7,6 @@ null-fields.spec.ts
 xss-security.spec.ts
 user-fetch-errors.spec.ts
 comments.spec.ts
+navigation.spec.ts
+url-navigation.spec.ts
 settings.spec.ts

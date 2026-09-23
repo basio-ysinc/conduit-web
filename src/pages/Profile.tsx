@@ -10,12 +10,13 @@ import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /**
  * /profile/:username と /profile/:username/favorites。
+ * My Articles / Favorited Articles タブで記事一覧を切り替える。
  * bio/image が null でも既定アバターと空の bio で崩れない。
  * プロフィール取得の失敗時も .profile-page の枠は残す。
  */
 export function Profile() {
   const { username } = useParams<{ username: string }>();
-  const { state, user } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
@@ -129,38 +130,40 @@ export function Profile() {
         </div>
       </div>
 
-      <div className="container">
-        <div className="row">
-          <div className="col-xs-12 col-md-10 offset-md-1">
-            <div className="articles-toggle">
-              <ul className="nav nav-pills outline-active">
-                <li className="nav-item">
-                  <NavLink className="nav-link" to={`/profile/${username}`} end>
-                    My Articles
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink className="nav-link" to={`/profile/${username}/favorites`}>
-                    Favorited Articles
-                  </NavLink>
-                </li>
-              </ul>
+      {!notFound && !profileErrors && (
+        <div className="container">
+          <div className="row">
+            <div className="col-xs-12 col-md-10 offset-md-1">
+              <div className="articles-toggle">
+                <ul className="nav nav-pills outline-active">
+                  <li className="nav-item">
+                    <NavLink className="nav-link" to={`/profile/${username}`} end>
+                      My Articles
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink className="nav-link" to={`/profile/${username}/favorites`}>
+                      Favorited Articles
+                    </NavLink>
+                  </li>
+                </ul>
+              </div>
+              <ArticleList
+                articles={articles}
+                loading={listLoading}
+                error={listErrors}
+                onArticleChange={(updated) =>
+                  setArticles((prev) =>
+                    prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
+                  )
+                }
+                emptyMessage="No articles are here... yet."
+              />
+              <Pagination total={articlesCount} page={page} basePath={basePath} />
             </div>
-            <ArticleList
-              articles={articles}
-              loading={listLoading}
-              error={listErrors}
-              onArticleChange={(updated) =>
-                setArticles((prev) =>
-                  prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
-                )
-              }
-              emptyMessage="No articles are here... yet."
-            />
-            <Pagination total={articlesCount} page={page} basePath={basePath} />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
