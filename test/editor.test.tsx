@@ -3,6 +3,7 @@ import { act } from "react";
 import { type Root, createRoot } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { App } from "../src/App";
 import { ApiError } from "../src/api/client";
 import type { Article, User } from "../src/api/types";
 import type { AuthContextValue, AuthState } from "../src/auth/AuthContext";
@@ -229,5 +230,39 @@ describe("Editor (edit)", () => {
 
     expect(apiMock.updateArticle).not.toHaveBeenCalled();
     expect(container.textContent).toBe("HOME");
+  });
+});
+
+describe("Editor (navigation)", () => {
+  it("clears the form when navigating from /editor/:slug to /editor", async () => {
+    apiMock.getArticle.mockResolvedValue(existing);
+    auth.user = author;
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(
+        <MemoryRouter initialEntries={[`/editor/${existing.slug}`]}>
+          <App />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(apiMock.getArticle).toHaveBeenCalledWith(existing.slug);
+    expect(container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe(
+      "Hello World",
+    );
+
+    const newArticle = [...container.querySelectorAll("a")].find(
+      (a) => a.getAttribute("href") === "/editor",
+    );
+    await act(async () => {
+      newArticle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector<HTMLInputElement>('input[name="title"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[name="description"]')?.value).toBe("");
+    expect(container.querySelector<HTMLTextAreaElement>('textarea[name="body"]')?.value).toBe("");
+    expect(container.querySelectorAll(".tag-list .tag-pill").length).toBe(0);
   });
 });

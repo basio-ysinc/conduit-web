@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useParams } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { RequireAuth } from "./components/RequireAuth";
 import { Article } from "./pages/Article";
@@ -8,6 +8,16 @@ import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
 import { Register } from "./pages/Register";
 import { Settings } from "./pages/Settings";
+
+/**
+ * slug ごとに Editor を別インスタンスにする。
+ * /editor/:slug から /editor への遷移では同じ位置に同じ要素が描かれて
+ * アンマウントされないため、key で切り替えてフォームを初期化する。
+ */
+function EditorPage() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Editor key={slug ?? "new"} />;
+}
 
 /** ルート定義。各画面は src/pages/ に置き、ここで差し替える。 */
 export function App() {
@@ -31,7 +41,7 @@ export function App() {
           path="/editor"
           element={
             <RequireAuth>
-              <Editor />
+              <EditorPage />
             </RequireAuth>
           }
         />
@@ -39,7 +49,7 @@ export function App() {
           path="/editor/:slug"
           element={
             <RequireAuth>
-              <Editor />
+              <EditorPage />
             </RequireAuth>
           }
         />
