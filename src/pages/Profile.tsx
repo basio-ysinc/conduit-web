@@ -5,12 +5,12 @@ import type { Article, Errors, Profile as ProfileModel } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
+import { FollowButton } from "../components/FollowButton";
 import { DEFAULT_AVATAR } from "../components/Navbar";
 
 /**
  * /profile/:username と /profile/:username/favorites。
  * My Articles / Favorited Articles タブで記事一覧を切り替える。
- * フォローボタンは別チケット(W6)のスコープ。
  */
 export function Profile() {
   const { username } = useParams<{ username: string }>();
@@ -101,10 +101,12 @@ export function Profile() {
                   <img className="user-img" src={profile.image || DEFAULT_AVATAR} alt="" />
                   <h4>{profile.username}</h4>
                   <p>{profile.bio ?? ""}</p>
-                  {isOwn && (
+                  {isOwn ? (
                     <Link className="btn btn-sm btn-outline-secondary action-btn" to="/settings">
                       <i className="ion-gear-a" /> Edit Profile Settings
                     </Link>
+                  ) : (
+                    <FollowButton profile={profile} onChange={setProfile} />
                   )}
                 </>
               )}
@@ -137,7 +139,11 @@ export function Profile() {
                 error={listErrors}
                 onArticleChange={(updated) =>
                   setArticles((prev) =>
-                    prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
+                    prev
+                      ? isFavorites && isOwn && !updated.favorited
+                        ? prev.filter((a) => a.slug !== updated.slug)
+                        : prev.map((a) => (a.slug === updated.slug ? updated : a))
+                      : prev,
                   )
                 }
                 emptyMessage="No articles are here... yet."
