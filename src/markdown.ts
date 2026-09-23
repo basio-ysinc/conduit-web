@@ -1,10 +1,9 @@
 /**
  * 最小限の Markdown -> HTML レンダラ。記事本文用。
  *
- * セキュリティ方針: 入力はまず全体を HTML エスケープし、その後に
- * 自分で生成するタグだけを組み立てる。ユーザーの生 HTML は常に
- * テキストとして表示され、script / on* ハンドラは DOM に現れない。
- * リンク・画像の URL は http(s)/相対パスのみ許可し、
+ * セキュリティ方針: 入力は先に HTML エスケープし、自分で生成するタグだけを
+ * 組み立てる。ユーザーの生 HTML は常にテキストとして表示される。
+ * リンク・画像の URL は http(s)/mailto/tel/相対パスのみ許可し、
  * javascript: や data: は無効化する。
  */
 
@@ -17,12 +16,10 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** エスケープ済み文字列中の URL を検査する。許可しないスキームは "#" に潰す。 */
+/** 許可しないスキームの URL は "#" に潰す。 */
 function sanitizeUrl(url: string): string {
   const trimmed = url.trim();
-  // エスケープ済みなので &quot; 等は含まれうるが、生の < > " ' は入らない
-  if (/^(https?:|mailto:|tel:|\/|#)/i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith("//")) return trimmed;
+  if (/^(https?:|mailto:|tel:|\/|#)/i.test(trimmed) || trimmed.startsWith("//")) return trimmed;
   return "#";
 }
 
@@ -34,41 +31,34 @@ function sanitizeImageUrl(url: string): string | null {
   return null;
 }
 
+/** コードスパン以外の部分にインライン記法を適用する。 */
+function renderText(escaped: string): string {
+  return escaped
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt: string, url: string) => {
+      const safe = sanitizeImageUrl(url);
+      return safe === null ? alt : `<img src="${safe}" alt="${alt}" />`;
+    })
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text: string, url: string) => {
+      return `<a href="${sanitizeUrl(url)}">${text}</a>`;
+    })
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+    .replace(/\b_([^_]+)_\b/g, "<em>$1</em>")
+    .replace(/~~([^~]+)~~/g, "<del>$1</del>");
+}
+
 /** エスケープ済みテキストに対してインライン記法を適用する。 */
 function renderInline(escaped: string): string {
-  // インラインコード(内容はこれ以上変換しない)
-  const codes: string[] = [];
-  let out = escaped.replace(/`([^`]+)`/g, (_m, code: string) => {
-    codes.push(code);
-    return `\u0000${codes.length - 1}\u0000`;
-  });
-
-  // 画像 ![alt](url)
-  out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt: string, url: string) => {
-    const safe = sanitizeImageUrl(url);
-    if (safe === null) return alt;
-    return `<img src="${safe}" alt="${alt}" />`;
-  });
-
-  // リンク [text](url)
-  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text: string, url: string) => {
-    return `<a href="${sanitizeUrl(url)}">${text}</a>`;
-  });
-
-  // 強調・斜体・取消線
-  out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  out = out.replace(/__([^_]+)__/g, "<strong>$1</strong>");
-  out = out.replace(/\b_([^_]+)_\b/g, "<em>$1</em>");
-  out = out.replace(/~~([^~]+)~~/g, "<del>$1</del>");
-
-  // インラインコードを戻す(プレースホルダは本文に現れない \u0000 数字 \u0000 形式)
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: 本文と衝突しないプレースホルダとして制御文字を意図的に使う
-  out = out.replace(/\u0000(\d+)\u0000/g, (m, i: string) => {
-    const code = codes[Number(i)];
-    return code === undefined ? m : `<code>${code}</code>`;
-  });
-  return out;
+  // バッククォートで分割し、コードスパンの中身はこれ以上変換しない
+  return escaped
+    .split(/(`[^`]+`)/g)
+    .map((part) =>
+      part.length > 1 && part.startsWith("`") && part.endsWith("`")
+        ? `<code>${part.slice(1, -1)}</code>`
+        : renderText(part),
+    )
+    .join("");
 }
 
 /** Markdown 文字列をサニタイズ済み HTML に変換する。 */
@@ -109,8 +99,9 @@ export function renderMarkdown(source: string): string {
   };
 
   for (const line of lines) {
+    const trimmed = line.trim();
     if (inCode) {
-      if (/^```/.test(line.trim())) {
+      if (/^```/.test(trimmed)) {
         blocks.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
         codeLines = [];
         inCode = false;
@@ -119,7 +110,6 @@ export function renderMarkdown(source: string): string {
       }
       continue;
     }
-    const trimmed = line.trim();
     if (/^```/.test(trimmed)) {
       flushAll();
       inCode = true;
@@ -132,8 +122,9 @@ export function renderMarkdown(source: string): string {
     const heading = /^(#{1,6})\s+(.*)$/.exec(trimmed);
     if (heading) {
       flushAll();
-      const level = heading[1].length;
-      blocks.push(`<h${level}>${renderInline(escapeHtml(heading[2]))}</h${level}>`);
+      blocks.push(
+        `<h${heading[1].length}>${renderInline(escapeHtml(heading[2]))}</h${heading[1].length}>`,
+      );
       continue;
     }
     if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
