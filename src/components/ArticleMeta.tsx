@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Article } from "../api/types";
-import { DEFAULT_AVATAR } from "./Navbar";
+import { avatarUrl } from "../avatar";
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -13,7 +13,7 @@ export function ArticleMeta({ article, actions }: { article: Article; actions?: 
   return (
     <div className="article-meta">
       <Link to={`/profile/${article.author.username}`}>
-        <img src={article.author.image || DEFAULT_AVATAR} alt="" />
+        <img src={avatarUrl(article.author.image)} alt="" />
       </Link>
       <div className="info">
         <Link className="author" to={`/profile/${article.author.username}`}>

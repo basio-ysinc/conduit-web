@@ -8,7 +8,10 @@ const root = document.getElementById("root");
 if (!root) throw new Error("#root not found");
 createRoot(root).render(
   <StrictMode>
-    <BrowserRouter>
+    {/* useTransitions=false: 遷移を transition レーンで遅延させず即時コミットする。
+        デフォルト(startTransition)では遷移コミットが他の更新に割り込まれて
+        飢餓し、最大5秒遅れるケースがあった */}
+    <BrowserRouter useTransitions={false}>
       <AuthProvider>
         <App />
       </AuthProvider>

@@ -3,16 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { Article, Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
+import { avatarUrl } from "../avatar";
+import { formatDate } from "./ArticleMeta";
 import { ErrorMessages } from "./ErrorMessages";
-import { DEFAULT_AVATAR } from "./Navbar";
 
 /** e2e が 1 ページ 10 件を前提にする(url-navigation.spec.ts)。 */
 export const ARTICLES_PER_PAGE = 10;
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toDateString();
-}
 
 /** 記事1件のプレビューカード(.article-preview)。 */
 function ArticlePreview({
@@ -48,7 +44,7 @@ function ArticlePreview({
     <div className="article-preview">
       <div className="article-meta">
         <Link to={`/profile/${article.author.username}`}>
-          <img src={article.author.image || DEFAULT_AVATAR} alt="" />
+          <img src={avatarUrl(article.author.image)} alt="" />
         </Link>
         <div className="info">
           <Link className="author" to={`/profile/${article.author.username}`}>

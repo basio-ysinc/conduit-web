@@ -2,6 +2,7 @@
 # 例: health.spec.ts
 health.spec.ts
 auth.spec.ts
+articles.spec.ts
 comments.spec.ts
 navigation.spec.ts
 url-navigation.spec.ts
