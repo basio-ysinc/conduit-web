@@ -1,6 +1,9 @@
 import { Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { RequireAuth } from "./components/RequireAuth";
+import { Article } from "./pages/Article";
+import { Editor } from "./pages/Editor";
+import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
 import { Profile } from "./pages/Profile";
@@ -13,7 +16,7 @@ export function App() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Placeholder name="Home" />} />
+        <Route path="/" element={<Home />} />
         <Route path="/tag/:tag" element={<Placeholder name="Home" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -29,7 +32,7 @@ export function App() {
           path="/editor"
           element={
             <RequireAuth>
-              <Placeholder name="Editor" />
+              <Editor />
             </RequireAuth>
           }
         />
@@ -41,7 +44,7 @@ export function App() {
             </RequireAuth>
           }
         />
-        <Route path="/article/:slug" element={<Placeholder name="Article" />} />
+        <Route path="/article/:slug" element={<Article />} />
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/profile/:username/favorites" element={<Placeholder name="Profile" />} />
         <Route path="*" element={<Placeholder name="Not found" />} />

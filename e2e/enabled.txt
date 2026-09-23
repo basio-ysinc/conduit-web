@@ -2,4 +2,5 @@
 # 例: health.spec.ts
 health.spec.ts
 auth.spec.ts
+comments.spec.ts
 settings.spec.ts
