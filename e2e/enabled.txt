@@ -3,3 +3,4 @@
 health.spec.ts
 auth.spec.ts
 comments.spec.ts
+settings.spec.ts
