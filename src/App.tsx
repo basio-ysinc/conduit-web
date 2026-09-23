@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { RequireAuth } from "./components/RequireAuth";
-import { ArticlePage } from "./pages/Article";
+import { Article } from "./pages/Article";
 import { Editor } from "./pages/Editor";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
@@ -17,7 +17,7 @@ export function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/tag/:tag" element={<Placeholder name="Home" />} />
+        <Route path="/tag/:tag" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -40,11 +40,11 @@ export function App() {
           path="/editor/:slug"
           element={
             <RequireAuth>
-              <Placeholder name="Editor" />
+              <Editor />
             </RequireAuth>
           }
         />
-        <Route path="/article/:slug" element={<ArticlePage />} />
+        <Route path="/article/:slug" element={<Article />} />
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/profile/:username/favorites" element={<Profile />} />
         <Route path="*" element={<Placeholder name="Not found" />} />

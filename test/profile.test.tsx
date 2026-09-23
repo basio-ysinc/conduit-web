@@ -210,7 +210,7 @@ describe("Profile", () => {
     const container = await render("/profile/me", testUser);
 
     expect(apiMock.getProfile).toHaveBeenCalledWith("me");
-    expect(apiMock.getArticles).toHaveBeenCalledWith({ author: "me", limit: 50 });
+    expect(apiMock.getArticles).toHaveBeenCalledWith({ author: "me", limit: 10, offset: 0 });
     expect(container.querySelector(".user-info h4")?.textContent).toBe("me");
     expect(container.querySelector('.user-info a[href="/settings"]')?.textContent).toContain(
       "Edit Profile Settings",
@@ -250,7 +250,11 @@ describe("Profile", () => {
 
     const container = await render("/profile/me/favorites", testUser);
 
-    expect(apiMock.getArticles).toHaveBeenCalledWith({ favorited: "me", limit: 50 });
+    expect(apiMock.getArticles).toHaveBeenCalledWith({
+      favorited: "me",
+      limit: 10,
+      offset: 0,
+    });
     const active = container.querySelector(".articles-toggle .nav-link.active");
     expect(active?.textContent).toContain("Favorited");
     expect(container.querySelectorAll(".article-preview")).toHaveLength(1);
