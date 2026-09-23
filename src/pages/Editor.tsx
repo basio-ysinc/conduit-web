@@ -2,15 +2,18 @@ import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Errors } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
 /**
  * /editor(新規)と /editor/:slug(編集)。編集時は記事を読み込んでフォームに
- * 事前入力する。読み込み・保存の失敗は .error-messages に出し、画面は残す。
+ * 事前入力する。作者以外が編集画面を開いた場合はホームへ戻す。
+ * 読み込み・保存の失敗は .error-messages に出し、画面は残す。
  */
 export function Editor() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [body, setBody] = useState("");
@@ -26,6 +29,10 @@ export function Editor() {
       .getArticle(slug)
       .then((article) => {
         if (cancelled) return;
+        if (article.author.username !== user?.username) {
+          navigate("/", { replace: true });
+          return;
+        }
         setTitle(article.title);
         setDescription(article.description);
         setBody(article.body ?? "");
@@ -37,7 +44,7 @@ export function Editor() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, user, navigate]);
 
   const addTag = () => {
     const tag = tagInput.trim();
