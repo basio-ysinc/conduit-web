@@ -4,7 +4,8 @@ import type { Errors } from "../api/types";
 /**
  * 捕捉したエラーを GenericErrorModel の形に正規化する。
  * ApiError はその errors をそのまま使い、ネットワーク断等の非 HTTP エラーは
- * 接続エラーの定型文にする。
+ * 接続エラーの定型文にする。レスポンスに errors が無い場合も表示できるよう
+ * フォールバックを入れる。
  */
 export function toErrors(err: unknown): Errors {
   if (err instanceof ApiError) {

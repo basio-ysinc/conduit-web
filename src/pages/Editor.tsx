@@ -113,6 +113,7 @@ export function Editor() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={onTagKeyDown}
+                    onBlur={addTag}
                   />
                   <div className="tag-list">
                     {tagList.map((tag) => (

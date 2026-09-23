@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { RequireAuth } from "./components/RequireAuth";
+import { Article } from "./pages/Article";
 import { Editor } from "./pages/Editor";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
@@ -43,7 +44,7 @@ export function App() {
             </RequireAuth>
           }
         />
-        <Route path="/article/:slug" element={<Placeholder name="Article" />} />
+        <Route path="/article/:slug" element={<Article />} />
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/profile/:username/favorites" element={<Profile />} />
         <Route path="*" element={<Placeholder name="Not found" />} />
