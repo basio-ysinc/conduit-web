@@ -1,11 +1,13 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api/client";
-import type { Article as ArticleModel, Comment, Errors } from "../api/types";
+import type { Article as ArticleModel, Comment, Errors, Profile } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
-import { ArticleMeta, FavoriteButton, FollowButton, formatDate } from "../components/ArticleMeta";
+import { ArticleMeta, formatDate } from "../components/ArticleMeta";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
+import { FavoriteButtonLarge } from "../components/FavoriteButton";
+import { FollowButton } from "../components/FollowButton";
 import { renderMarkdown } from "../markdown";
 
 /**
@@ -18,6 +20,7 @@ export function Article() {
   const navigate = useNavigate();
   const { state, user } = useAuth();
   const [article, setArticle] = useState<ArticleModel | null>(null);
+  const [authorProfile, setAuthorProfile] = useState<Profile | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [errors, setErrors] = useState<Errors | null>(null);
   const [actionErrors, setActionErrors] = useState<Errors | null>(null);
@@ -29,11 +32,23 @@ export function Article() {
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
+    setArticle(null);
+    setAuthorProfile(null);
+    setNotFound(false);
     setActionErrors(null);
     api
       .getArticle(slug)
-      .then((a) => {
-        if (!cancelled) setArticle(a);
+      .then(async (a) => {
+        if (cancelled) return;
+        setArticle(a);
+        // article.author.following は API 側で常に false のことがあるため、
+        // follow 状態は profiles エンドポイントから別途取る
+        try {
+          const p = await api.getProfile(a.author.username);
+          if (!cancelled) setAuthorProfile(p);
+        } catch {
+          if (!cancelled) setAuthorProfile(a.author);
+        }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -94,30 +109,30 @@ export function Article() {
 
   const isAuthor = user !== null && article !== null && user.username === article.author.username;
 
-  const articleActions =
-    article &&
-    (isAuthor ? (
-      <>
-        <Link className="btn btn-outline-secondary btn-sm" to={`/editor/${article.slug}`}>
-          <i className="ion-edit" /> Edit Article
-        </Link>
-        <button type="button" className="btn btn-outline-danger btn-sm" onClick={onDeleteArticle}>
-          <i className="ion-trash-a" /> Delete Article
-        </button>
-      </>
-    ) : (
-      <>
+  const articleActions = isAuthor ? (
+    <>
+      <Link className="btn btn-outline-secondary btn-sm" to={`/editor/${article?.slug}`}>
+        <i className="ion-edit" /> Edit Article
+      </Link>
+      <button type="button" className="btn btn-outline-danger btn-sm" onClick={onDeleteArticle}>
+        <i className="ion-trash-a" /> Delete Article
+      </button>
+    </>
+  ) : article ? (
+    <>
+      {authorProfile && (
         <FollowButton
-          profile={article.author}
+          profile={authorProfile}
           onChange={(p) => {
             setActionErrors(null);
-            setArticle((prev) => (prev ? { ...prev, author: p } : prev));
+            setAuthorProfile(p);
           }}
           onError={(err) => setActionErrors(toErrors(err))}
         />
-        <FavoriteButton article={article} onChange={setArticle} />
-      </>
-    ));
+      )}{" "}
+      <FavoriteButtonLarge article={article} onChange={setArticle} />
+    </>
+  ) : undefined;
 
   return (
     <div className="article-page">

@@ -5,8 +5,8 @@ import type { Article, Errors, Profile as ProfileModel } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { avatarUrl } from "../avatar";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";
-import { FollowButton } from "../components/ArticleMeta";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
+import { FollowButton } from "../components/FollowButton";
 
 /**
  * /profile/:username と /profile/:username/favorites。
@@ -154,7 +154,11 @@ export function Profile() {
                 error={listErrors}
                 onArticleChange={(updated) =>
                   setArticles((prev) =>
-                    prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
+                    prev
+                      ? isFavorites && isOwn && !updated.favorited
+                        ? prev.filter((a) => a.slug !== updated.slug)
+                        : prev.map((a) => (a.slug === updated.slug ? updated : a))
+                      : prev,
                   )
                 }
                 emptyMessage="No articles are here... yet."

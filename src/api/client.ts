@@ -47,6 +47,11 @@ function isErrors(value: unknown): value is { errors: Errors } {
   return typeof value === "object" && value !== null && "errors" in value;
 }
 
+/** 不明なエラーを Errors 形式に正規化する(ApiError 以外は汎用メッセージ)。 */
+export function toErrors(err: unknown): Errors {
+  return err instanceof ApiError ? err.errors : { body: ["request failed"] };
+}
+
 async function parseErrors(res: Response): Promise<Errors> {
   try {
     const body: unknown = await res.json();
