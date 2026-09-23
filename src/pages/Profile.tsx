@@ -95,7 +95,7 @@ export function Profile() {
             <div className="col-xs-12 col-md-10 offset-md-1">
               {notFound ? (
                 <>
-                  <h4>User not found</h4>
+                  <h4>Profile not found.</h4>
                   <p>The user you are looking for does not exist.</p>
                 </>
               ) : profileErrors && !profile ? (
