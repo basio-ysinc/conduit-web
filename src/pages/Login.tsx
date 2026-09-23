@@ -1,11 +1,11 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ApiError, api } from "../api/client";
+import { api } from "../api/client";
 import type { Errors } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
-/** /login。成功したら token を保存してホームへ遷移する。 */
+/** /login。認証成功でホームへ。失敗は .error-messages に出して留まる。 */
 export function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ export function Login() {
       signIn(user);
       navigate("/");
     } catch (err) {
-      setErrors(err instanceof ApiError ? err.errors : { body: ["An unexpected error occurred"] });
+      setErrors(toErrors(err));
     } finally {
       setSubmitting(false);
     }

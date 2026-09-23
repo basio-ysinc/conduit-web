@@ -9,7 +9,8 @@ import { toErrors } from "../components/ErrorMessages";
 /**
  * / と /tag/:tag。Global Feed / Your Feed / タグ絞り込みを表示する。
  * ?feed=following はログイン必須で、未ログインなら /login へリダイレクトする。
- * ページ送りは ?page=N(1 ページ 10 件)。
+ * 記事・タグの取得失敗では枠(banner/feed-toggle/sidebar)を残したまま
+ * エラーメッセージだけを出す。ページ送りは ?page=N(1 ページ 10 件)。
  */
 export function Home() {
   const { state } = useAuth();
@@ -37,8 +38,8 @@ export function Home() {
     promise
       .then((res) => {
         if (cancelled) return;
-        setArticles(res.articles);
-        setArticlesCount(res.articlesCount);
+        setArticles(res?.articles ?? []);
+        setArticlesCount(res?.articlesCount ?? 0);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -58,7 +59,7 @@ export function Home() {
     api
       .getTags()
       .then((list) => {
-        if (!cancelled) setTags(list);
+        if (!cancelled) setTags(list ?? []);
       })
       .catch(() => {
         // タグ取得の失敗は画面を壊さない。サイドバーが空になるだけ
@@ -70,7 +71,7 @@ export function Home() {
   }, []);
 
   // 認証状態の復元中はリダイレクトせず、確定後に未ログインなら /login へ
-  if (isYourFeed && state !== "loading" && state !== "authenticated") {
+  if (isYourFeed && state === "unauthenticated") {
     return <Navigate to="/login" replace />;
   }
 
@@ -137,6 +138,7 @@ export function Home() {
             />
             <Pagination total={articlesCount} page={page} basePath={listBase} />
           </div>
+
           <div className="col-md-3">
             <div className="sidebar">
               <p>Popular Tags</p>

@@ -1,18 +1,19 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api/client";
 import type { Article as ArticleModel, Comment, Errors, Profile } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
+import { avatarUrl } from "../avatar";
 import { ArticleMeta, formatDate } from "../components/ArticleMeta";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 import { FavoriteButtonLarge } from "../components/FavoriteButton";
 import { FollowButton } from "../components/FollowButton";
-import { DEFAULT_AVATAR } from "../components/Navbar";
 import { renderMarkdown } from "../markdown";
 
 /**
  * /article/:slug。本文はサニタイズ済み Markdown として描画する。
- * 著者には Edit / Delete、他人のコメントには削除アイコンを出さない。
+ * 記事取得が失敗しても .article-page の枠は残し、404 相当の表示か
+ * エラーメッセージを出す(白画面にしない)。
  */
 export function Article() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,6 +23,7 @@ export function Article() {
   const [authorProfile, setAuthorProfile] = useState<Profile | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [errors, setErrors] = useState<Errors | null>(null);
+  const [actionErrors, setActionErrors] = useState<Errors | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [commentErrors, setCommentErrors] = useState<Errors | null>(null);
@@ -33,6 +35,7 @@ export function Article() {
     setArticle(null);
     setAuthorProfile(null);
     setNotFound(false);
+    setActionErrors(null);
     api
       .getArticle(slug)
       .then(async (a) => {
@@ -58,25 +61,25 @@ export function Article() {
     api
       .getComments(slug)
       .then((list) => {
-        if (!cancelled) setComments(list);
+        if (!cancelled) setComments(list ?? []);
       })
       .catch(() => {
-        // コメント取得の失敗は記事表示を妨げない
+        // コメント取得失敗は記事表示を妨げない
       });
     return () => {
       cancelled = true;
     };
   }, [slug]);
 
-  const onDeleteArticle = async () => {
+  const onDeleteArticle = useCallback(async () => {
     if (!slug) return;
     try {
       await api.deleteArticle(slug);
       navigate("/");
     } catch (err) {
-      setErrors(toErrors(err));
+      setActionErrors(toErrors(err));
     }
-  };
+  }, [slug, navigate]);
 
   const onPostComment = async (e: FormEvent) => {
     e.preventDefault();
@@ -117,7 +120,16 @@ export function Article() {
     </>
   ) : article ? (
     <>
-      {authorProfile && <FollowButton profile={authorProfile} onChange={setAuthorProfile} />}{" "}
+      {authorProfile && (
+        <FollowButton
+          profile={authorProfile}
+          onChange={(p) => {
+            setActionErrors(null);
+            setAuthorProfile(p);
+          }}
+          onError={(err) => setActionErrors(toErrors(err))}
+        />
+      )}{" "}
       <FavoriteButtonLarge article={article} onChange={setArticle} />
     </>
   ) : undefined;
@@ -146,11 +158,12 @@ export function Article() {
           </div>
 
           <div className="container page">
+            <ErrorMessages errors={actionErrors} />
             <div className="row article-content">
               <div className="col-md-12">
                 <div
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown がエスケープ済み HTML を生成する
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(article.body) }}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(article.body ?? "") }}
                 />
                 {article.tagList.length > 0 && (
                   <ul className="tag-list">
@@ -183,11 +196,7 @@ export function Article() {
                       />
                     </div>
                     <div className="card-footer">
-                      <img
-                        className="comment-author-img"
-                        src={user.image || DEFAULT_AVATAR}
-                        alt=""
-                      />
+                      <img className="comment-author-img" src={avatarUrl(user.image)} alt="" />
                       <button
                         className="btn btn-sm btn-primary"
                         type="submit"
@@ -211,7 +220,7 @@ export function Article() {
                       <Link className="comment-author" to={`/profile/${comment.author.username}`}>
                         <img
                           className="comment-author-img"
-                          src={comment.author.image || DEFAULT_AVATAR}
+                          src={avatarUrl(comment.author.image)}
                           alt=""
                         />
                       </Link>

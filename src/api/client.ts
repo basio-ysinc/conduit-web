@@ -34,6 +34,15 @@ export class ApiError extends Error {
   }
 }
 
+/** fetch 自体が失敗した場合(ネットワーク断・タイムアウト・CORS 等)のエラー。 */
+export class NetworkError extends Error {
+  constructor(cause: unknown) {
+    super("Unable to connect to the server");
+    this.name = "NetworkError";
+    this.cause = cause;
+  }
+}
+
 function isErrors(value: unknown): value is { errors: Errors } {
   return typeof value === "object" && value !== null && "errors" in value;
 }
@@ -59,11 +68,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (token) headers.Authorization = `Token ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new NetworkError(err);
+  }
   if (!res.ok) throw new ApiError(res.status, await parseErrors(res));
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

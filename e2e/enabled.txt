@@ -2,6 +2,10 @@
 # 例: health.spec.ts
 health.spec.ts
 auth.spec.ts
+error-handling.spec.ts
+null-fields.spec.ts
+xss-security.spec.ts
+user-fetch-errors.spec.ts
 articles.spec.ts
 comments.spec.ts
 navigation.spec.ts

@@ -67,6 +67,8 @@ export function FavoriteButtonLarge({
     setBusy(true);
     try {
       onChange(await toggleFavorite(article));
+    } catch {
+      // お気に入り失敗時は状態を変えない(ボタンはそのまま残る)
     } finally {
       setBusy(false);
     }

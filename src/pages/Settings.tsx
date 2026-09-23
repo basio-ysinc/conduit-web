@@ -1,11 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, api } from "../api/client";
+import { api } from "../api/client";
 import type { Errors, UpdateUser } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { ErrorMessages } from "../components/ErrorMessages";
+import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
-/** /settings。プロフィール設定の更新(PUT /user)とログアウト。 */
+/**
+ * /settings。プロフィール設定の更新(PUT /user)とログアウト。
+ * null になりうる bio/image は空文字としてフォームに出す("null" と表示しない)。
+ */
 export function Settings() {
   const { user, setUser, signOut } = useAuth();
   const navigate = useNavigate();
@@ -33,11 +36,16 @@ export function Settings() {
       setUser(updated);
       navigate(`/profile/${updated.username}`);
     } catch (err) {
-      setErrors(err instanceof ApiError ? err.errors : { body: ["An unexpected error occurred"] });
+      setErrors(toErrors(err));
     } finally {
       setSubmitting(false);
     }
   }
+
+  const logout = () => {
+    signOut();
+    navigate("/");
+  };
 
   return (
     <div className="settings-page">
@@ -61,7 +69,7 @@ export function Settings() {
                   className="form-control form-control-lg"
                   type="text"
                   name="username"
-                  placeholder="Your Name"
+                  placeholder="Username"
                   defaultValue={user.username}
                 />
               </fieldset>
@@ -100,14 +108,7 @@ export function Settings() {
               </button>
             </form>
             <hr />
-            <button
-              className="btn btn-outline-danger"
-              type="button"
-              onClick={() => {
-                signOut();
-                navigate("/");
-              }}
-            >
+            <button className="btn btn-outline-danger" type="button" onClick={logout}>
               Or click here to logout
             </button>
           </div>

@@ -3,14 +3,16 @@ import { Link, NavLink, useLocation, useParams, useSearchParams } from "react-ro
 import { ApiError, api } from "../api/client";
 import type { Article, Errors, Profile as ProfileModel } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
+import { avatarUrl } from "../avatar";
 import { ARTICLES_PER_PAGE, ArticleList, Pagination } from "../components/ArticleList";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 import { FollowButton } from "../components/FollowButton";
-import { DEFAULT_AVATAR } from "../components/Navbar";
 
 /**
  * /profile/:username と /profile/:username/favorites。
  * My Articles / Favorited Articles タブで記事一覧を切り替える。
+ * bio/image が null でも既定アバターと空の bio で崩れない。
+ * プロフィール取得の失敗時も .profile-page の枠は残す。
  */
 export function Profile() {
   const { username } = useParams<{ username: string }>();
@@ -23,6 +25,7 @@ export function Profile() {
   const [profile, setProfile] = useState<ProfileModel | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [profileErrors, setProfileErrors] = useState<Errors | null>(null);
+  const [actionErrors, setActionErrors] = useState<Errors | null>(null);
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [articlesCount, setArticlesCount] = useState(0);
   const [listLoading, setListLoading] = useState(true);
@@ -34,6 +37,7 @@ export function Profile() {
     setProfile(null);
     setNotFound(false);
     setProfileErrors(null);
+    setActionErrors(null);
     api
       .getProfile(username)
       .then((p) => {
@@ -65,8 +69,8 @@ export function Profile() {
       .getArticles(params)
       .then((res) => {
         if (cancelled) return;
-        setArticles(res.articles);
-        setArticlesCount(res.articlesCount);
+        setArticles(res?.articles ?? []);
+        setArticlesCount(res?.articlesCount ?? 0);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -91,22 +95,33 @@ export function Profile() {
           <div className="row">
             <div className="col-xs-12 col-md-10 offset-md-1">
               {notFound ? (
-                <p>Profile not found.</p>
+                <>
+                  <h4>Profile not found.</h4>
+                  <p>The user you are looking for does not exist.</p>
+                </>
               ) : profileErrors && !profile ? (
                 <ErrorMessages errors={profileErrors} />
               ) : !profile ? (
                 <p>Loading profile...</p>
               ) : (
                 <>
-                  <img className="user-img" src={profile.image || DEFAULT_AVATAR} alt="" />
+                  <img className="user-img" src={avatarUrl(profile.image)} alt="" />
                   <h4>{profile.username}</h4>
                   <p>{profile.bio ?? ""}</p>
+                  <ErrorMessages errors={actionErrors} />
                   {isOwn ? (
                     <Link className="btn btn-sm btn-outline-secondary action-btn" to="/settings">
                       <i className="ion-gear-a" /> Edit Profile Settings
                     </Link>
                   ) : (
-                    <FollowButton profile={profile} onChange={setProfile} />
+                    <FollowButton
+                      profile={profile}
+                      onChange={(p) => {
+                        setActionErrors(null);
+                        setProfile(p);
+                      }}
+                      onError={(err) => setActionErrors(toErrors(err))}
+                    />
                   )}
                 </>
               )}

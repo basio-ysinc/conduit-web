@@ -8,9 +8,11 @@ import { useAuth } from "../auth/AuthContext";
 export function FollowButton({
   profile,
   onChange,
+  onError,
 }: {
   profile: Profile;
   onChange: (profile: Profile) => void;
+  onError?: (err: unknown) => void;
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +29,8 @@ export function FollowButton({
         ? await api.unfollowUser(profile.username)
         : await api.followUser(profile.username);
       onChange(updated);
+    } catch (err) {
+      onError?.(err);
     } finally {
       setBusy(false);
     }

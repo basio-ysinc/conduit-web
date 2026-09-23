@@ -1,8 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { DEFAULT_AVATAR, avatarUrl } from "../avatar";
 
-/** image が無いときのフォールバック(e2e/SELECTORS.md の契約)。 */
-export const DEFAULT_AVATAR = "/default-avatar.svg";
+export { DEFAULT_AVATAR };
 
 /** .navbar。ログイン状態で .nav-link を切り替える。 */
 export function Navbar() {
@@ -35,7 +35,7 @@ export function Navbar() {
               </li>
               <li className="nav-item">
                 <NavLink className="nav-link" to={`/profile/${user.username}`}>
-                  <img className="user-pic" src={user.image || DEFAULT_AVATAR} alt="" />
+                  <img className="user-pic" src={avatarUrl(user.image)} alt="" />
                   {user.username}
                 </NavLink>
               </li>
