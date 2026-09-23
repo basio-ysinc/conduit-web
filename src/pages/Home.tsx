@@ -8,15 +8,15 @@ import { toErrors } from "../components/ErrorMessages";
 
 /**
  * / と /tag/:tag。Global Feed / Your Feed / タグ絞り込みを表示する。
- * 記事・タグの取得失敗では枠(banner/feed-toggle/sidebar)を残したまま
- * エラーメッセージだけを出す。
+ * ?feed=following はログイン必須で、未ログインなら /login へリダイレクトする。
+ * ページ送りは ?page=N(1 ページ 10 件)。
  */
 export function Home() {
   const { state } = useAuth();
   const { tag } = useParams<{ tag: string }>();
   const [searchParams] = useSearchParams();
-  const feed = searchParams.get("feed");
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const isYourFeed = !tag && searchParams.get("feed") === "following";
 
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [articlesCount, setArticlesCount] = useState(0);
@@ -24,23 +24,21 @@ export function Home() {
   const [error, setError] = useState<Errors | null>(null);
   const [tags, setTags] = useState<string[]>([]);
 
-  const isYourFeed = feed === "following" && !tag;
-
   useEffect(() => {
+    // Your Feed は認証状態が確定するまで取得しない(未ログインはリダイレクト)
     if (isYourFeed && state !== "authenticated") return;
     let cancelled = false;
     setLoading(true);
     setError(null);
     const offset = (page - 1) * ARTICLES_PER_PAGE;
-    const promise =
-      isYourFeed && state === "authenticated"
-        ? api.getArticlesFeed({ limit: ARTICLES_PER_PAGE, offset })
-        : api.getArticles({ tag, limit: ARTICLES_PER_PAGE, offset });
+    const promise = isYourFeed
+      ? api.getArticlesFeed({ limit: ARTICLES_PER_PAGE, offset })
+      : api.getArticles({ tag, limit: ARTICLES_PER_PAGE, offset });
     promise
       .then((res) => {
         if (cancelled) return;
-        setArticles(res?.articles ?? []);
-        setArticlesCount(res?.articlesCount ?? 0);
+        setArticles(res.articles);
+        setArticlesCount(res.articlesCount);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -53,14 +51,14 @@ export function Home() {
     return () => {
       cancelled = true;
     };
-  }, [tag, page, state, isYourFeed]);
+  }, [tag, page, isYourFeed, state]);
 
   useEffect(() => {
     let cancelled = false;
     api
       .getTags()
       .then((list) => {
-        if (!cancelled) setTags(list ?? []);
+        if (!cancelled) setTags(list);
       })
       .catch(() => {
         // タグ取得の失敗は画面を壊さない。サイドバーが空になるだけ
@@ -71,23 +69,23 @@ export function Home() {
     };
   }, []);
 
-  // Your Feed はログイン必須
-  if (isYourFeed && state === "unauthenticated") {
+  // 認証状態の復元中はリダイレクトせず、確定後に未ログインなら /login へ
+  if (isYourFeed && state !== "loading" && state !== "authenticated") {
     return <Navigate to="/login" replace />;
   }
 
-  const tagBase = tag ? `/tag/${encodeURIComponent(tag)}` : "/";
-  const listBase = isYourFeed ? "/?feed=following" : tagBase;
+  const listBase = isYourFeed ? "/?feed=following" : tag ? `/tag/${encodeURIComponent(tag)}` : "/";
 
   return (
     <div className="home-page">
-      <div className="banner">
-        <div className="container">
-          <h1 className="logo-font">conduit</h1>
-          <p>A place to share your knowledge.</p>
+      {!tag && (
+        <div className="banner">
+          <div className="container">
+            <h1 className="logo-font">conduit</h1>
+            <p>A place to share your knowledge.</p>
+          </div>
         </div>
-      </div>
-
+      )}
       <div className="container page">
         <div className="row">
           <div className="col-md-9">
@@ -117,7 +115,6 @@ export function Home() {
                 )}
               </ul>
             </div>
-
             <ArticleList
               articles={articles}
               loading={loading}
@@ -140,7 +137,6 @@ export function Home() {
             />
             <Pagination total={articlesCount} page={page} basePath={listBase} />
           </div>
-
           <div className="col-md-3">
             <div className="sidebar">
               <p>Popular Tags</p>
@@ -148,8 +144,8 @@ export function Home() {
                 {tags.map((t) => (
                   <Link
                     key={t}
-                    to={`/tag/${encodeURIComponent(t)}`}
                     className="tag-pill tag-default"
+                    to={`/tag/${encodeURIComponent(t)}`}
                   >
                     {t}
                   </Link>

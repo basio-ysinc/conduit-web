@@ -72,6 +72,10 @@ describe("renderMarkdown (rendering)", () => {
     );
   });
 
+  it("does not swallow digits next to inline code", () => {
+    expect(renderMarkdown("`x` costs 100")).toBe("<p><code>x</code> costs 100</p>");
+  });
+
   it("renders lists, quotes, code blocks and hr", () => {
     expect(renderMarkdown("- a\n- b")).toBe("<ul><li>a</li><li>b</li></ul>");
     expect(renderMarkdown("1. a\n2. b")).toBe("<ol><li>a</li><li>b</li></ol>");
