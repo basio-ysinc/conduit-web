@@ -4,3 +4,4 @@ health.spec.ts
 auth.spec.ts
 navigation.spec.ts
 url-navigation.spec.ts
+settings.spec.ts

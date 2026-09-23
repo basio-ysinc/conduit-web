@@ -91,10 +91,7 @@ export function Profile() {
           <div className="row">
             <div className="col-xs-12 col-md-10 offset-md-1">
               {notFound ? (
-                <>
-                  <h4>User not found</h4>
-                  <p>The user you are looking for does not exist.</p>
-                </>
+                <p>Profile not found.</p>
               ) : profileErrors && !profile ? (
                 <ErrorMessages errors={profileErrors} />
               ) : !profile ? (
@@ -116,38 +113,40 @@ export function Profile() {
         </div>
       </div>
 
-      <div className="container">
-        <div className="row">
-          <div className="col-xs-12 col-md-10 offset-md-1">
-            <div className="articles-toggle">
-              <ul className="nav nav-pills outline-active">
-                <li className="nav-item">
-                  <NavLink className="nav-link" to={`/profile/${username}`} end>
-                    My Articles
-                  </NavLink>
-                </li>
-                <li className="nav-item">
-                  <NavLink className="nav-link" to={`/profile/${username}/favorites`}>
-                    Favorited Articles
-                  </NavLink>
-                </li>
-              </ul>
+      {!notFound && !profileErrors && (
+        <div className="container">
+          <div className="row">
+            <div className="col-xs-12 col-md-10 offset-md-1">
+              <div className="articles-toggle">
+                <ul className="nav nav-pills outline-active">
+                  <li className="nav-item">
+                    <NavLink className="nav-link" to={`/profile/${username}`} end>
+                      My Articles
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink className="nav-link" to={`/profile/${username}/favorites`}>
+                      Favorited Articles
+                    </NavLink>
+                  </li>
+                </ul>
+              </div>
+              <ArticleList
+                articles={articles}
+                loading={listLoading}
+                error={listErrors}
+                onArticleChange={(updated) =>
+                  setArticles((prev) =>
+                    prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
+                  )
+                }
+                emptyMessage="No articles are here... yet."
+              />
+              <Pagination total={articlesCount} page={page} basePath={basePath} />
             </div>
-            <ArticleList
-              articles={articles}
-              loading={listLoading}
-              error={listErrors}
-              onArticleChange={(updated) =>
-                setArticles((prev) =>
-                  prev ? prev.map((a) => (a.slug === updated.slug ? updated : a)) : prev,
-                )
-              }
-              emptyMessage="No articles are here... yet."
-            />
-            <Pagination total={articlesCount} page={page} basePath={basePath} />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
