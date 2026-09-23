@@ -17,7 +17,7 @@ export function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/tag/:tag" element={<Placeholder name="Home" />} />
+        <Route path="/tag/:tag" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -40,13 +40,13 @@ export function App() {
           path="/editor/:slug"
           element={
             <RequireAuth>
-              <Placeholder name="Editor" />
+              <Editor />
             </RequireAuth>
           }
         />
         <Route path="/article/:slug" element={<Article />} />
         <Route path="/profile/:username" element={<Profile />} />
-        <Route path="/profile/:username/favorites" element={<Placeholder name="Profile" />} />
+        <Route path="/profile/:username/favorites" element={<Profile />} />
         <Route path="*" element={<Placeholder name="Not found" />} />
       </Routes>
     </>

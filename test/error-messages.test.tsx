@@ -2,7 +2,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
-import { ErrorMessages } from "../src/components/ErrorMessages";
+import { ApiError } from "../src/api/client";
+import { ErrorMessages, toErrors } from "../src/components/ErrorMessages";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -34,5 +35,24 @@ describe("ErrorMessages", () => {
 
     const empty = await render(null);
     expect(empty.querySelector(".error-messages")).toBeNull();
+  });
+});
+
+describe("toErrors", () => {
+  it("returns the server's errors when ApiError carries them", () => {
+    const errors = { email: ["is invalid"], title: ["can't be blank"] };
+    expect(toErrors(new ApiError(422, errors))).toEqual(errors);
+  });
+
+  it("falls back to a status message when ApiError has no errors", () => {
+    expect(toErrors(new ApiError(503, {}))).toEqual({
+      error: ["Request failed with status 503"],
+    });
+  });
+
+  it("maps non-HTTP errors to a connection error", () => {
+    expect(toErrors(new TypeError("Failed to fetch"))).toEqual({
+      error: ["Unable to connect to the server. Please check your connection and try again."],
+    });
   });
 });

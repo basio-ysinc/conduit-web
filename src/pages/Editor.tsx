@@ -1,11 +1,15 @@
-import { type FormEvent, type KeyboardEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Errors } from "../api/types";
 import { ErrorMessages, toErrors } from "../components/ErrorMessages";
 
-/** /editor(新規作成のみ)。記事の編集画面は別チケットのスコープ。 */
+/**
+ * /editor(新規)と /editor/:slug(編集)。編集時は記事を読み込んでフォームに
+ * 事前入力する。読み込み・保存の失敗は .error-messages に出し、画面は残す。
+ */
 export function Editor() {
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -14,6 +18,26 @@ export function Editor() {
   const [tagList, setTagList] = useState<string[]>([]);
   const [errors, setErrors] = useState<Errors | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!slug) return;
+    let cancelled = false;
+    api
+      .getArticle(slug)
+      .then((article) => {
+        if (cancelled) return;
+        setTitle(article.title);
+        setDescription(article.description);
+        setBody(article.body);
+        setTagList(article.tagList);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setErrors(toErrors(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   const addTag = () => {
     const tag = tagInput.trim();
@@ -33,7 +57,9 @@ export function Editor() {
     setBusy(true);
     setErrors(null);
     try {
-      const saved = await api.createArticle({ title, description, body, tagList });
+      const saved = slug
+        ? await api.updateArticle(slug, { title, description, body, tagList })
+        : await api.createArticle({ title, description, body, tagList });
       navigate(`/article/${saved.slug}`);
     } catch (err) {
       setErrors(toErrors(err));
